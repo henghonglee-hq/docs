@@ -8,79 +8,79 @@
     "light": "#E2E8F0",
     "dark": "#020617"
   },
-  "tabs": [
-    {
-      "name": "Guides",
-      "url": "guides"
-    },
-    {
-      "name": "API Reference",
-      "url": "api-reference"
-    }
-  ],
   "navigation": {
-    "groups": [
+    "tabs": [
       {
-        "group": "Welcome to GnosisRamp",
-        "pages": ["index", "getting-started"]
-      },
-      {
-        "group": "Authentication & Access",
-        "pages": ["auth/project-access", "auth/token-exchange"]
-      },
-      {
-        "group": "Customers & External Accounts",
-        "pages": [
-          "external-accounts/creating",
-          "external-accounts/requirements"
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Welcome to GnosisRamp",
+            "pages": ["index", "getting-started"]
+          },
+          {
+            "group": "Authentication & Access",
+            "pages": ["auth/project-access", "auth/token-exchange"]
+          },
+          {
+            "group": "Customers & External Accounts",
+            "pages": [
+              "external-accounts/creating",
+              "external-accounts/requirements"
+            ]
+          },
+          {
+            "group": "Intents & Compliance",
+            "pages": [
+              "intents/lifecycle",
+              "intents/auto-complete"
+            ]
+          },
+          {
+            "group": "Money Movement",
+            "pages": [
+              "money-movement/transactions",
+              "money-movement/amounts"
+            ]
+          },
+          {
+            "group": "Webhooks & Events",
+            "pages": [
+              "webhooks/outgoing"
+            ]
+          }
         ]
       },
       {
-        "group": "Intents & Compliance",
-        "pages": [
-          "intents/lifecycle",
-          "intents/auto-complete"
-        ]
-      },
-      {
-        "group": "Money Movement",
-        "pages": [
-          "money-movement/transactions",
-          "money-movement/amounts"
-        ]
-      },
-      {
-        "group": "Webhooks & Events",
-        "pages": [
-          "webhooks/outgoing"
-        ]
-      },
-      {
-        "group": "API Reference",
-        "pages": ["api-reference/overview"]
-      },
-      {
-        "group": "Customers",
-        "pages": [
-          "api-reference/endpoints/customers/create-customer",
-          "api-reference/endpoints/customers/get-all-customers"
-        ]
-      },
-      {
-        "group": "External Accounts",
-        "pages": [
-          "api-reference/endpoints/external-accounts/get-external-account-requirements",
-          "api-reference/endpoints/external-accounts/get-all-external-accounts",
-          "api-reference/endpoints/external-accounts/create-external-account"
-        ]
-      },
-      {
-        "group": "Intents",
-        "pages": [
-          "api-reference/endpoints/intents/get-all-payment-intents",
-          "api-reference/endpoints/intents/create-payment-intent",
-          "api-reference/endpoints/intents/get-payment-intent",
-          "api-reference/endpoints/intents/execute-transaction-for-payment-intent"
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": ["api-reference/overview"]
+          },
+          {
+            "group": "Customers",
+            "pages": [
+              "api-reference/endpoints/customers/create-customer",
+              "api-reference/endpoints/customers/get-all-customers"
+            ]
+          },
+          {
+            "group": "External Accounts",
+            "pages": [
+              "api-reference/endpoints/external-accounts/get-external-account-requirements",
+              "api-reference/endpoints/external-accounts/get-all-external-accounts",
+              "api-reference/endpoints/external-accounts/create-external-account"
+            ]
+          },
+          {
+            "group": "Intents",
+            "pages": [
+              "api-reference/endpoints/intents/get-all-payment-intents",
+              "api-reference/endpoints/intents/create-payment-intent",
+              "api-reference/endpoints/intents/get-payment-intent",
+              "api-reference/endpoints/intents/execute-transaction-for-payment-intent"
+            ]
+          }
         ]
       }
     ]

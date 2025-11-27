@@ -1,0 +1,50 @@
+---
+title: "Amount Precision & Validation"
+description: "Send human-readable decimal strings that respect each currency’s scale."
+---
+
+All money-related endpoints accept **decimal strings** rather than integers. GnosisRamp normalises the string (`normalizeAmount`) and verifies the scale against the currency metadata before persisting the intent.
+
+## Allowed decimals
+
+| Currency type | Examples | Maximum decimals |
+| --- | --- | --- |
+| Fiat | USD, EUR, BRL | 2 |
+| Stablecoins | USDC, USDT | 6 |
+| Native tokens | ETH, MATIC, OP | 18 |
+| Bitcoin | BTC | 8 |
+
+### Examples
+
+```json
+"100"              // valid USD -> 0 decimals
+"100.50"           // valid USD -> 2 decimals
+"0.123456"         // valid for USDC (6 decimals)
+"0.123456789012345678" // valid for ETH (18 decimals)
+```
+
+```json
+"0.1234567"        // invalid for USDC – exceeds 6 decimals
+"0.1234567890123456789" // invalid for ETH – exceeds 18 decimals
+```
+
+When validation fails you receive an `AmountValidationError` describing the constraints:
+
+```json
+{
+  "error": "Bad Request",
+  "message": "amount exceeds allowed precision of 6 decimal places for USDC",
+  "details": {
+    "field": "amount",
+    "currencyCode": "USDC",
+    "maxDecimals": 6,
+    "providedDecimals": 7
+  }
+}
+```
+
+## Recommendations
+
+- Treat amounts as strings end-to-end. Convert user input to a string early and avoid floating-point math in JavaScript.
+- Store the canonical amount from the intent response (`intent.metadata.transferAmount`) for later display or reconciliation.
+- When bridging to blockchain SDKs, convert the validated string to smallest units using the decimals metadata before broadcasting the transaction.

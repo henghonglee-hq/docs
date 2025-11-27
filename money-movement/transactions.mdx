@@ -1,0 +1,86 @@
+---
+title: "Transactions & Deposit Instructions"
+description: "Trigger provider transfers and surface the exact steps customers must follow."
+---
+
+After onboarding completes (or auto-complete fires) call the transaction endpoint to create or fetch deposit instructions.
+
+## Execute the transaction
+
+```bash cURL
+curl -X POST https://api.gnosisramp.io/v1/intent/$INTENT_ID/transaction \
+  -H "Authorization: Bearer $GNOSISRAMP_TOKEN"
+```
+
+- Returns `202 Accepted` and a transaction record with `status: IN_PROGRESS`.
+- Fails with `400` if compliance is incomplete or a transaction already exists.
+
+## Poll the transaction
+
+```bash
+curl -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
+  https://api.gnosisramp.io/v1/intent/$INTENT_ID/transaction
+```
+
+### Deposit instruction format
+
+```json
+{
+  "id": "txn_789",
+  "status": "IN_PROGRESS",
+  "context": [
+    {
+      "kind": "CRYPTO",
+      "label": "Deposit USDC on ETH",
+      "currency": { "code": "USDC" },
+      "crypto": {
+        "chainId": "1",
+        "address": "0xd77497c8...",
+        "destinationTag": null,
+        "transactionData": {
+          "encodedData": "0xa9059cbb...",
+          "parameters": {
+            "tokenAmount": "100.25",
+            "tokenAmountInSmallestUnit": "100250000"
+          }
+        }
+      },
+      "metadata": {
+        "amountConditions": [
+          { "ComparisonOperator": "GreaterThanOrEqualTo", "Value": "100.00" }
+        ]
+      }
+    }
+  ]
+}
+```
+
+- **Crypto instructions** include multiple encodings so you can support raw contract calls, wallet SDKs, or custom UIs.
+- **Bank instructions** contain `beneficiary`, `rail`, and identifiers (IBAN, ABA, PIX, etc.).
+- `metadata` carries provider-specific hints such as minimum amounts or expiry windows.
+
+## Status timeline
+
+| Status | Description |
+| --- | --- |
+| `IN_PROGRESS` | Transaction created, waiting for customer funds or provider confirmation. |
+| `COMPLETED` | Provider confirmed settlement; outgoing event sent. |
+| `FAILED` | Provider returned an error; check the transaction response for error details. |
+| `CANCELLED` | Transaction was cancelled or the intent expired. |
+
+## Events & notifications
+
+When a transaction status changes, GnosisRamp emits a `MONEY_MOVEMENT_UPDATED` webhook:
+
+```json
+{
+  "eventType": "MONEY_MOVEMENT_UPDATED",
+  "data": {
+    "intentId": "int_123",
+    "transactionId": "txn_789",
+    "status": "COMPLETED"
+  }
+}
+```
+
+Use outgoing webhooks (see the Webhooks section) or poll the transaction endpoint to keep your UI up to date.

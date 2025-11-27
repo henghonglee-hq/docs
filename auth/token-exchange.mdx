@@ -1,0 +1,57 @@
+---
+title: "Customer Token Exchange"
+description: "Turn your existing OIDC identities into GnosisRamp JWTs."
+---
+
+GnosisRamp never owns your login experience. Instead, it trusts the **subject token** that your identity provider issues and converts it into a short-lived JWT scoped to a single customer.
+
+## Request flow
+
+<Steps>
+  <Step title="Authenticate with client credentials">
+    Encode `clientId:clientSecret` using HTTP Basic auth. These values are bound to a specific project so the resulting customer also inherits that project/organisation context.
+  </Step>
+  <Step title="Send the user’s subject token">
+    Call `POST /customers/token-exchange` with the OIDC `subject_token`. GnosisRamp verifies the issuer, signature, allowed audiences, and skew settings you configured earlier.
+  </Step>
+  <Step title="Store the GnosisRamp JWT per session">
+    The response contains (or reuses) a `Customer` row plus an `access_token`. Use this JWT on every customer-scoped endpoint such as external accounts, intents, and transactions.
+  </Step>
+</Steps>
+
+```bash cURL
+curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
+  -u "${GNOSISRAMP_CLIENT_ID}:${GNOSISRAMP_CLIENT_SECRET}" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "subject_token": "<OIDC_ID_TOKEN>"
+      }'
+```
+
+**Response**
+
+```json
+{
+  "id": "cust_9a8c...",
+  "createdAt": "2025-01-12T21:45:11.201Z",
+  "updatedAt": "2025-01-12T21:45:11.201Z",
+  "organizationId": "org_12f",
+  "projectId": "proj_87c",
+  "access_token": "GNOSISRAMP_JWT_..."
+}
+```
+
+### Using the GnosisRamp JWT
+
+- Include it on every authenticated call: `Authorization: Bearer <access_token>`.
+- Tokens inherit the expiration of the subject token plus any TTL you configured. Re-run the exchange when you receive `401 Unauthorized`.
+- Generate one token per active session; do not share JWTs between customers.
+
+### Error handling
+
+| Status | When it fires | How to resolve |
+| --- | --- | --- |
+| `401 Unauthorized` | Missing/invalid Basic auth or the subject token fails issuer/audience checks. | Verify credentials and ensure the identity provider is registered in GnosisRamp. |
+| `400 Bad Request` | `subject_token` missing or empty. | Supply a JWT string in the request body. |
+
+Once you have a valid access token you can create external accounts and intents on behalf of your customer without additional user interaction.

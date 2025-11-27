@@ -1,0 +1,63 @@
+---
+title: "Outgoing Webhooks"
+description: "Subscribe to intent, compliance, and money movement events with HMAC validation."
+---
+
+GnosisRamp pushes critical lifecycle updates to your webhook endpoint:
+
+- `INTENT_STATUS_CHANGED`
+- `COMPLIANCE_UPDATED`
+- `MONEY_MOVEMENT_UPDATED`
+
+Every request includes:
+
+| Header | Purpose |
+| --- | --- |
+| `X-GnosisRamp-Signature` | Hex-encoded HMAC-SHA256 signature |
+| `X-GnosisRamp-Timestamp` | ISO timestamp used in the signature payload |
+| `X-GnosisRamp-Event-Type` | Event type |
+| `X-GnosisRamp-Client-Id` | Project client ID |
+
+## Verifying the signature (Node.js)
+
+```ts
+import crypto from 'node:crypto';
+import express from 'express';
+
+const app = express();
+app.post('/webhooks/gnosisramp', express.raw({ type: 'application/json' }), (req, res) => {
+  const timestamp = req.header('x-gnosisramp-timestamp');
+  const signature = req.header('x-gnosisramp-signature');
+  const clientId = req.header('x-gnosisramp-client-id');
+
+  if (!timestamp || !signature || !clientId) {
+    return res.status(400).send({ error: 'Missing headers' });
+  }
+
+  const clientSecret = lookupSecret(clientId); // fetch from your vault
+  const message = `${timestamp}.${req.body.toString('utf8')}`;
+  const expected = crypto.createHmac('sha256', clientSecret).update(message).digest('hex');
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))) {
+    return res.status(401).send({ error: 'Invalid signature' });
+  }
+
+  const event = JSON.parse(req.body.toString('utf8'));
+  handleEvent(event);
+  res.status(200).send({ received: true });
+});
+```
+
+## Retry behaviour
+
+- Timeouts or non-2xx responses trigger exponential backoff (1 min → 5 min → 30 min → 2 h → 24 h).
+- After 6 failed attempts the delivery is marked as exhausted and will no longer be retried.
+
+## Best practices
+
+- **Preserve the raw body** until after verification.
+- **Validate timestamps** (±5 minutes) to prevent replay attacks.
+- **Log event IDs** (`eventId`) so you can de-duplicate or audit deliveries.
+- **Keep handlers idempotent**; GnosisRamp may retry when the acknowledgment is unclear.
+
+Use these webhook events to keep your back office, CRM, or downstream systems synchronized with GnosisRamp transaction status.

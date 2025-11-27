@@ -1,122 +1,99 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
+  "$schema": "https://mintlify.com/schema.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "GnosisRamp API Guide",
+  "favicon": "/gnosis-ramp.svg",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#0F172A",
+    "light": "#E2E8F0",
+    "dark": "#020617"
   },
-  "favicon": "/favicon.svg",
+  "tabs": [
+    {
+      "name": "Guides",
+      "url": "guides"
+    },
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
   "navigation": {
-    "tabs": [
+    "groups": [
       {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
+        "group": "Welcome to GnosisRamp",
+        "pages": ["index", "getting-started"]
+      },
+      {
+        "group": "Authentication & Access",
+        "pages": ["auth/project-access", "auth/token-exchange"]
+      },
+      {
+        "group": "Customers & External Accounts",
+        "pages": [
+          "external-accounts/creating",
+          "external-accounts/requirements"
         ]
       },
       {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
+        "group": "Intents & Compliance",
+        "pages": [
+          "intents/lifecycle",
+          "intents/auto-complete"
+        ]
+      },
+      {
+        "group": "Money Movement",
+        "pages": [
+          "money-movement/transactions",
+          "money-movement/amounts"
+        ]
+      },
+      {
+        "group": "Webhooks & Events",
+        "pages": [
+          "webhooks/outgoing"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": ["api-reference/overview"]
+      },
+      {
+        "group": "Customers",
+        "pages": [
+          "api-reference/endpoints/customers/create-customer",
+          "api-reference/endpoints/customers/get-all-customers"
+        ]
+      },
+      {
+        "group": "External Accounts",
+        "pages": [
+          "api-reference/endpoints/external-accounts/get-external-account-requirements",
+          "api-reference/endpoints/external-accounts/get-all-external-accounts",
+          "api-reference/endpoints/external-accounts/create-external-account"
+        ]
+      },
+      {
+        "group": "Intents",
+        "pages": [
+          "api-reference/endpoints/intents/get-all-payment-intents",
+          "api-reference/endpoints/intents/create-payment-intent",
+          "api-reference/endpoints/intents/get-payment-intent",
+          "api-reference/endpoints/intents/execute-transaction-for-payment-intent"
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/gnosis-ramp.svg",
+    "dark": "/gnosis-ramp.svg"
   },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+  "openapi": ["/openapi.yaml"],
+  "api": {
+    "baseUrl": "https://app.gnosisramp.com/api/v1",
+    "playground": {
+      "mode": "simple"
     }
   }
 }

@@ -1,0 +1,61 @@
+---
+title: "Intent Lifecycle"
+description: "From capability evaluation to onboarding workflows and status polling."
+---
+
+An **intent** describes the money you want to move between two external accounts. GnosisRamp handles provider selection, compliance orchestration, and workflow execution for you.
+
+## 1. Create an intent
+
+```bash cURL
+curl -X POST https://api.gnosisramp.io/v1/intent \
+  -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "customerId": "cust_9a8c",
+        "srcExternalAccountId": "ext_src",
+        "destExternalAccountId": "ext_dest",
+        "amount": "100.25",
+        "currencyCode": "USD",
+        "redirectUrl": "https://app.yourdomain.com/success"
+      }'
+```
+
+The platform will:
+
+<Steps>
+  <Step title="Select the optimal provider">
+    GnosisRamp evaluates all available providers and selects the best match based on the source and destination accounts.
+  </Step>
+  <Step title="Create compliance plan">
+    A compliance plan is created with all required steps for the transaction. The response includes a `frontendUrl` where you can direct users to complete any required onboarding.
+  </Step>
+  <Step title="Execute compliance workflow">
+    The compliance workflow runs through all required steps. Once the plan reaches `COMPLETED` status, you can proceed with the transaction.
+  </Step>
+</Steps>
+
+## 2. Poll or retrieve the intent
+
+Use `GET /intent/{id}` to check which compliance requirements remain, monitor intent status, or confirm that auto-complete succeeded.
+
+```bash
+curl -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
+  https://api.gnosisramp.io/v1/intent/int_123
+```
+
+The response includes:
+
+- `intent.status` – Current status: `PENDING`, `PROCESSING`, `COMPLETED`, etc.
+- `compliancePlan.steps` – Ordered list of compliance requirements with their current status.
+- `transaction` – Transaction details when available (auto-complete or after calling the transaction endpoint).
+
+## 3. Error signals
+
+| Scenario | Behaviour |
+| --- | --- |
+| No providers can handle the route | `POST /intent` returns `400` with `"No provider can handle the requested external accounts"`. You may need to enable additional providers for your project. |
+| Amount precision mismatch | `AmountValidationError` with details about allowed decimals (fiat, stablecoin, native tokens, BTC). Adjust the decimal string before retrying. |
+| Requirements failure | The intent is marked as `FAILED` and the failure reason is available in `compliancePlan.steps[].metadata`. |
+
+Once onboarding passes you can either rely on auto-complete (covered next) or call the transaction API to fetch deposit instructions.

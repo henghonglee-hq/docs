@@ -1,97 +1,32 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "GnosisRamp Overview"
+description: "A unified API platform for regulated on/off ramp flows."
 ---
 
-## Setting up
+GnosisRamp synchronises capability routing, compliance orchestration, and money movement into a single API. The platform handles multi-provider coverage, automatically selecting the best provider for each transaction.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup>
+  <Card title="Deterministic routing" icon="route">
+    Automatically selects the best provider for each transaction based on capabilities and priorities.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Compliance orchestration" icon="shield">
+    Manages compliance requirements and dependencies automatically, ensuring regulatory requirements are met.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Durable money movement" icon="coins">
+    Quotes, deposit instructions, and transaction statuses are persisted so you can provide customers with actionable payment steps and safely poll transaction state.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Real-time events" icon="webhook">
+    Webhook events keep you informed of intent status changes, compliance updates, and transaction progress.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Platform capabilities
 
-Everything you need to create world-class documentation.
+| Layer | What it does |
+| --- | --- |
+| Capability routing | Evaluates source and destination accounts and selects the optimal provider for the transaction. |
+| Compliance management | Orchestrates compliance requirements, manages onboarding workflows, and tracks requirement statuses. |
+| Money movement | Creates quotes, executes transfers, and provides deposit instructions for customers. |
+| Events | Sends webhook events for intent updates, compliance changes, and transaction status with HMAC-SHA256 signatures. |
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+The platform provides consistent routing, secure credential management, and structured event tracking across all providers and payment rails.

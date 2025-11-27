@@ -1,0 +1,55 @@
+---
+title: "Project Access & Credentials"
+description: "How to authenticate using your project client credentials."
+---
+
+<Note>
+  Before you can start using GnosisRamp, you need to **contact the GnosisRamp team** to create an organization for you. Once your organization is set up, you'll be able to login to the dashboard and create projects.
+</Note>
+
+## Getting Your Credentials
+
+Each project in the GnosisRamp dashboard provides a unique `clientId` and `clientSecret` pair. These credentials are displayed once when created, so store them securely in your secret manager.
+
+## Using Your Credentials
+
+Your project credentials are used to authenticate with the GnosisRamp API using HTTP Basic Authentication.
+
+### Basic Authentication
+
+Use your `clientId` as the username and `clientSecret` as the password for HTTP Basic Auth:
+
+```bash
+# Format: clientId:clientSecret encoded in base64
+curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
+  -u "your_client_id:your_client_secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "subject_token": "your_oidc_token"
+      }'
+```
+
+Alternatively, you can manually construct the Authorization header:
+
+```bash
+# Base64 encode "clientId:clientSecret"
+echo -n "your_client_id:your_client_secret" | base64
+
+# Use the encoded value in the Authorization header
+curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
+  -H "Authorization: Basic <base64_encoded_credentials>" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "subject_token": "your_oidc_token"
+      }'
+```
+
+## Credential Security
+
+- **Store securely**: Keep your client secret in a secure vault or environment variables. Never commit credentials to version control.
+- **Rotate regularly**: Generate new credentials periodically and update your applications.
+- **Separate environments**: Use different credentials for sandbox and production environments.
+
+## Next Steps
+
+Once you have your credentials, proceed to the [Token Exchange](/auth/token-exchange) guide to learn how to authenticate your customers and obtain GnosisRamp JWTs.

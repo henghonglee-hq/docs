@@ -1,0 +1,32 @@
+---
+title: "Getting Started"
+description: "Configure a GnosisRamp project, environments, and tooling before hitting the APIs."
+---
+
+<Note>
+  **New to GnosisRamp?** Contact the GnosisRamp team to set up your organization. Once created, you can login to the dashboard and begin your integration.
+</Note>
+
+Every integration begins with a **project** that owns credentials, provider accounts, and webhook settings. Use the dashboard to create a sandbox project, then follow these steps to wire your stack.
+
+<Steps>
+  <Step title="Provision project credentials">
+    Each project exposes `clientId`/`clientSecret` pairs (Project Client Credentials). Store them in your secret manager; they are used to call token-exchange endpoints and to configure outgoing webhook signing.
+  </Step>
+  <Step title="Activate provider accounts">
+    To enable payment providers for your project, you'll need to establish accounts directly with each ramp provider you wish to use. Once you have your provider accounts, input the credentials into the GnosisRamp dashboard. All credentials are encrypted and stored securely. After configuration, these providers will participate in routing for your transactions.
+  </Step>
+  <Step title="Seed external accounts">
+    Collect destination details from customers (bank rails or crypto addresses). GnosisRamp gives you JSON Schemas per rail — validating requests before you call the APIs prevents surprises during intent creation.
+  </Step>
+</Steps>
+
+### Environments & URLs
+
+| Environment | API base URL | Notes |
+| --- | --- | --- |
+| Production | `https://api.gnosisramp.io/v1` | Full provider roster + live money movement |
+| Sandbox | `https://sandbox.api.gnosisramp.io/v1` | Same schemas with mock providers |
+
+Once the project is configured you can focus on customer authentication, external accounts, and intent orchestration — the rest of this guide covers those pieces in depth.
+

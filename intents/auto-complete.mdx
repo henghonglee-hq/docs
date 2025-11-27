@@ -1,0 +1,47 @@
+---
+title: "Auto-complete for Returning Customers"
+description: "Skip onboarding when every compliance requirement already passes."
+---
+
+When a customer has already satisfied every plugin requirement, GnosisRamp auto-completes the intent and immediately creates a transaction. This avoids sending repeat customers back through onboarding and dramatically reduces time-to-deposit.
+
+## Response shape
+
+Regardless of the path, the response from `POST /intent` always includes:
+
+```json
+{
+  "intent": { ... },
+  "frontendUrl": "https://app.gnosisramp.com/intent/int_123" | null,
+  "workflowId": "wf_abc" | null,
+  "transaction": { ... } | null
+}
+```
+
+- **New customers** – `frontendUrl` + `workflowId` populated, `transaction=null`.
+- **Returning customers** – `frontendUrl=null`, `workflowId=null`, `transaction` contains deposit instructions.
+
+## How GnosisRamp decides
+
+1. After collecting requirements it calls every plugin’s `checkRequirements` hook.
+2. If none throw errors, the compliance plan is marked `COMPLETED` and onboarding is skipped.
+3. `executeTransaction` runs synchronously, generating deposit instructions immediately.
+
+## Client logic
+
+```ts
+const response = await createIntent(payload);
+if (response.transaction) {
+  showDepositInstructions(response.transaction.context);
+} else {
+  redirectTo(response.frontendUrl);
+}
+```
+
+## Safeguards
+
+- Each intent can own only **one** transaction. If you manually call `POST /intent/:intentId/transaction` after auto-complete, you will receive `400 Bad Request` with `"Transaction already exists for this intent."`
+- Auto-complete still enforces amount validation, provider capability checks, and dependency graphs — it simply recognises that all checks are already complete.
+- If a plugin raises an error in `checkRequirements`, GnosisRamp falls back to the onboarding workflow silently.
+
+Use auto-complete to give high-value customers a “just send funds” experience once their KYC/KYB portfolio is in good standing.

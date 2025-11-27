@@ -1,43 +1,99 @@
-# Mintlify Starter Kit
+# GnosisRamp API Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+This directory contains the Mintlify documentation for the GnosisRamp API.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## Local Development
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+The docs are automatically served at `http://localhost:3001/docs` when you run:
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
-npm i -g mint
+```bash
+yarn dev
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+This runs:
+- API Server on port 3000
+- Dashboard on port 3001
+- Mintlify docs on port 3002 (proxied through dashboard at `/docs`)
+
+## Standalone Docs Development
+
+To run just the docs locally without the full application:
+
+```bash
+yarn docs:dev
+```
+
+The docs will be available at `http://localhost:3002`
+
+## Production Deployment
+
+### Option 1: Deploy to Mintlify (Recommended)
+
+1. **Connect your repository to Mintlify:**
+   - Go to [mintlify.com](https://mintlify.com)
+   - Connect your GitHub repository
+   - Point to the root directory
+   - Mintlify will auto-deploy on every push
+
+2. **Update the production URL:**
+   - Set the `MINTLIFY_URL` environment variable to your Mintlify deployment URL
+   - The dashboard will proxy `/docs` to this URL in production
+
+3. **Example:**
+   ```bash
+   export MINTLIFY_URL=https://docs.gnosisramp.com
+   ```
+
+### Option 2: Self-Host with Static Build
+
+If you prefer to self-host the docs:
+
+1. **Build the docs:**
+   ```bash
+   yarn docs:build
+   ```
+
+2. **Serve the static files:**
+   - The build output will be in `.mintlify`
+   - You can serve this directory using any static file server
+   - Or configure your web server to proxy `/docs` to the static files
+
+3. **Update Next.js config:**
+   - Modify `dashboard/next.config.ts` to serve from static files instead of proxying
+
+## Updating API Documentation
+
+1. **Update the OpenAPI spec:**
+   - Edit `dashboard/public/openapi.yaml`
+   - Copy it to `openapi.yaml`
+
+2. **Regenerate endpoint docs:**
+   ```bash
+   npx @mintlify/scraping@latest openapi-file openapi.yaml -o api-reference/endpoints
+   ```
+
+3. **Update navigation:**
+   - If you add/remove endpoints, update the navigation in `docs.json`
+
+## File Structure
 
 ```
-mint dev
+docs/
+├── docs.json              # Configuration and navigation
+├── openapi.yaml           # OpenAPI specification
+├── api-reference/         # API reference docs
+│   ├── overview.mdx       # API reference overview
+│   └── endpoints/         # Auto-generated endpoint docs
+├── auth/                  # Authentication guides
+├── external-accounts/     # External accounts guides
+├── intents/              # Intents and compliance guides
+├── money-movement/       # Money movement guides
+├── webhooks/             # Webhook documentation
+└── static/               # Static assets (logos, images)
 ```
 
-View your local preview at `http://localhost:3000`.
+## Mintlify Resources
 
-## Publishing changes
-
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
-
-## Need help?
-
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+- [Mintlify Documentation](https://mintlify.com/docs)
+- [OpenAPI Setup Guide](https://mintlify.com/docs/api-playground/openapi-setup)
+- [Writing Content](https://mintlify.com/docs/content/writing)

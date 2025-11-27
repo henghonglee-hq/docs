@@ -1,0 +1,69 @@
+---
+title: "Creating External Accounts"
+description: "Persist bank accounts and crypto addresses so intents can route funds to the right destination."
+---
+
+External accounts represent the bank accounts or crypto addresses where funds will be sent or received. Before creating an external account, you need to fetch the requirement schema for the specific country or blockchain you're working with.
+
+<Note>
+  **First step**: Retrieve the JSON Schema requirements by following the [Fetching External Account Requirements](/external-accounts/requirements) guide. This schema defines the exact fields and validation rules for each rail or blockchain.
+</Note>
+
+Once you have a GnosisRamp JWT and the requirement schema, call `POST /customers/{customerId}/external-accounts` to register the destination. The payload must match the schema you fetched.
+
+### Example — US ACH account
+
+```bash cURL
+curl -X POST https://api.gnosisramp.io/v1/customers/$CUSTOMER_ID/external-accounts \
+  -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "type": "BANK_ACCOUNT",
+        "label": "Personal Checking",
+        "bankAccount": {
+          "rails": "ACH",
+          "currency": "USD",
+          "countryCode": "US",
+          "institutionName": "Chase Bank",
+          "accountIdentifier": {
+            "routingNumber": "021000021",
+            "accountNumber": "123456789012"
+          },
+          "beneficiary": {
+            "name": "Jane Doe",
+            "taxId": "123-45-6789"
+          }
+        }
+      }'
+```
+
+### Example — Ethereum address
+
+```bash cURL
+curl -X POST https://api.gnosisramp.io/v1/customers/$CUSTOMER_ID/external-accounts \
+  -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "type": "CRYPTO_ADDRESS",
+        "label": "MetaMask Wallet",
+        "cryptoAddress": {
+          "address": "0x742d35Cc6634C0532925a3b84cF2f7c7f3B2f5f8",
+          "currency": "USDC_ETH"
+        }
+      }'
+```
+
+The response echoes the stored metadata plus the resolved currency information. Persist the returned `id` — you will reference it when creating intents.
+
+### Error handling
+
+| Status | Meaning | Fix |
+| --- | --- | --- |
+| `400 Bad Request` | Schema validation failed (pattern mismatch, unsupported rail, etc.) | Re-run the requirements call and fix the payload. |
+| `401 Unauthorized` | Missing/expired GnosisRamp JWT | Exchange the subject token again. |
+
+### Best practices
+
+- Store human-friendly `label`s so operators and customers can recognise accounts in dashboards.
+- Use separate accounts for source vs destination legs when building cross-border flows — GnosisRamp needs both IDs on the intent.
+- Rotate sensitive metadata (like routing numbers) through your own vault when displaying them; GnosisRamp stores the canonical copy for routing.

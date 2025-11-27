@@ -1,0 +1,1122 @@
+openapi: 3.0.3
+info:
+  title: GnosisRamp API
+  version: 0.0.1
+servers:
+  - url: https://app.gnosisramp.com/api/v1
+    description: Production
+  - url: https://api-dev.gnosisramp.com/api/v1
+    description: Sandbox
+security:
+  - clientCredentials: []
+  - bearerToken: []
+tags:
+  - name: Customers
+    description: Customer management
+  - name: External Accounts
+    description: External account and requirements management
+  - name: Intents
+    description: Payment intent management
+  
+paths:
+
+  /customers/token-exchange:
+    post:
+      tags:
+        - Customers
+      summary: Create customer
+      description: |
+        Create a new customer or retrieve an existing one using OIDC token exchange.
+
+        This endpoint validates an OIDC token and creates a customer record if one doesn't exist
+        for the authenticated user. If a customer already exists for the token's user identifier,
+        it returns the existing customer.
+      security:
+        - clientCredentials: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerTokenExchangeRequest'
+      responses:
+        '201':
+          description: Customer created or retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Customer'
+                  - type: object
+                    properties:
+                      access_token:
+                        type: string
+                        nullable: true
+                        description: uRamp JWT token for authenticated customer requests
+        '401':
+          description: Missing or invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request or token validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: Get all customers
+      description: |
+        Retrieve a list of all customers for the authenticated project.
+
+        Returns customers associated with the current organization and project
+        based on the authentication context.
+      security:
+        - clientCredentials: []
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+        '401':
+          description: Missing or invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /external-accounts/requirements:
+    get:
+      tags:
+        - External Accounts
+      summary: Get external account requirements
+      description: |
+        Retrieve JSON Schema requirements for creating external accounts.
+
+        Returns country-specific requirements for bank accounts or blockchain-specific requirements
+        for crypto addresses. The schemas include validation rules, field formats, and supported
+        currencies/rails for dynamic form generation.
+      parameters:
+        - in: query
+          name: countryCode
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+          description: ISO 3166-1 alpha-2 country code (e.g., US, BR, AR). Must provide either countryCode or blockchain, not both.
+        - in: query
+          name: blockchain
+          schema:
+            type: string
+          description: Blockchain name (e.g., ETH, BTC, SOL, TRON, BASE, POL, ARB, OP, GNOSIS). Must provide either countryCode or blockchain, not both.
+      responses:
+        '200':
+          description: Requirements retrieved successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/CountryRequirementsResponse'
+                  - $ref: '#/components/schemas/BlockchainRequirementsResponse'
+        '400':
+          description: Bad request - must provide either countryCode or blockchain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers/external-accounts:
+    post:
+      tags:
+        - External Accounts
+      summary: Create external account
+      description: |
+        Create a new external account for the authenticated customer.
+
+        External accounts represent customer-owned financial accounts such as bank accounts,
+        crypto wallets, or digital wallets that can be used in payment intents.
+
+        The customer ID is automatically extracted from the JWT bearer token.
+
+        For bank accounts, the `countryCode` field is required in the `bankAccount` object
+        and must be a valid ISO 3166-1 alpha-2 country code (e.g., "US", "BR", "AR").
+      security:
+        - bearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExternalAccountRequest'
+      responses:
+        '201':
+          description: External account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalAccountResponse'
+        '400':
+          description: Bad request or validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid uRamp bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - External Accounts
+      summary: Get all external accounts
+      description: |
+        Retrieve a list of all external accounts for the authenticated customer.
+
+        Returns external accounts associated with the authenticated customer that can be used in payment intents.
+        The customer ID is automatically extracted from the JWT bearer token.
+      security:
+        - bearerToken: []
+      responses:
+        '200':
+          description: List of external accounts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExternalAccountResponse'
+        '401':
+          description: Missing or invalid uRamp bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+  /intent:
+    get:
+      tags:
+        - Intents
+      summary: Get all payment intents
+      description: |
+        Retrieve all payment intents for the authenticated customer
+
+        Returns a list of all payment intents created by the authenticated customer,
+        ordered by creation date (most recent first). Each intent includes its current
+        status, compliance plan, money movement plan, and associated transaction if available.
+      security:
+        - bearerToken: []
+      responses:
+        '200':
+          description: List of intents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetIntentResponse'
+        '401':
+          description: Missing or invalid uRamp bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Intents
+      summary: Create payment intent
+      description: |
+        Create a new payment intent between source and destination external accounts
+
+        The system will automatically find the optimal routing path and create compliance requirements
+        based on the source and destination external accounts. Requires user authentication via uRamp JWT token.
+
+        **Auto-Complete Feature**: For returning customers who have already completed compliance requirements,
+        the API will automatically create a transaction and return deposit instructions immediately,
+        skipping the onboarding workflow. In this case, `transaction` will be present and `frontendUrl`
+        will be null.
+      security:
+        - bearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntentRequest'
+      responses:
+        '201':
+          description: Intent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateIntentResponse'
+        '400':
+          description: Bad request or validation failed (including amount precision errors)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - $ref: '#/components/schemas/AmountValidationError'
+        '401':
+          description: Missing or invalid uRamp bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+  /intent/{id}:
+    get:
+      tags:
+        - Intents
+      summary: Get payment intent
+      description: |
+        Retrieve details of a specific payment intent by ID
+
+        The response includes all intent details, compliance plan status, and associated transaction
+        data with deposit instructions if a transaction has been created.
+      security:
+        - bearerToken: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The intent ID
+      responses:
+        '200':
+          description: Intent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetIntentResponse'
+        '404':
+          description: Intent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid uRamp bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /intent/{intentId}/transaction:
+    post:
+      tags:
+        - Intents
+      summary: Execute transaction for payment intent
+      description: |
+        Initiates provider transaction execution for an intent.
+        The underlying Temporal workflow processes this transaction asynchronously.
+
+        **Prerequisites**:
+        - Compliance plan must be completed (`currentStepCode` = "COMPLETED")
+        - Intent must have an associated money movement plan
+
+        **Returns**: Transaction object with deposit instructions in the `context` field.
+      security:
+        - bearerToken: []
+      parameters:
+        - in: path
+          name: intentId
+          required: true
+          schema:
+            type: string
+          description: Intent identifier
+      responses:
+        '202':
+          description: Transaction accepted for execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteTransactionResponse'
+        '400':
+          description: Transaction cannot be executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid uRamp bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Intent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    clientCredentials:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://app.gnosisramp.com/api/v1/auth/token
+          scopes: {}
+      description: OAuth2 client credentials flow for API authentication
+    bearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: uRamp JWT bearer token for authenticated customer requests
+
+  schemas:
+    CustomerTokenExchangeRequest:
+      type: object
+      required:
+        - subject_token
+      properties:
+        subject_token:
+          type: string
+          description: OIDC token to exchange for customer authentication
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+      description: Request body for customer token exchange
+
+    Customer:
+      type: object
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - organizationId
+        - projectId
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique customer identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        createdAt:
+          type: string
+          format: date-time
+          description: Customer creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Customer last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        organizationId:
+          type: string
+          description: Organization identifier
+          example: org_123456
+        projectId:
+          type: string
+          description: Project identifier
+          example: proj_123456
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Additional customer metadata
+      description: Customer entity
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code identifier
+          example: BAD_REQUEST
+        message:
+          type: string
+          description: Human-readable error message
+          example: Invalid request parameters
+      description: Standard error response format
+
+    AmountValidationError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code identifier
+          example: PAYMENT_AMOUNT_INVALID
+        message:
+          type: string
+          description: Human-readable error message describing the amount validation failure
+          example: amount exceeds allowed precision of 2 decimal places
+      description: Specialized error response for amount precision validation failures
+
+    CountryRequirementsResponse:
+      type: object
+      required:
+        - countryCode
+        - schema
+      properties:
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO 3166-1 alpha-2 country code
+          example: US
+        schema:
+          type: object
+          additionalProperties: true
+          description: JSON Schema defining the requirements for bank accounts in this country
+      description: Country-specific external account requirements
+
+    BlockchainRequirementsResponse:
+      type: object
+      required:
+        - blockchain
+        - schema
+      properties:
+        blockchain:
+          type: string
+          description: Blockchain name
+          example: ETHEREUM
+        schema:
+          type: object
+          additionalProperties: true
+          description: JSON Schema defining the requirements for crypto addresses on this blockchain
+      description: Blockchain-specific external account requirements
+
+    CreateExternalAccountRequest:
+      oneOf:
+        - type: object
+          required:
+            - type
+            - label
+            - bankAccount
+          properties:
+            type:
+              type: string
+              enum:
+                - BANK_ACCOUNT
+              description: External account type
+            label:
+              type: string
+              description: Human-readable label for the external account
+              example: Personal Checking Account
+            bankAccount:
+              type: object
+              required:
+                - countryCode
+              properties:
+                countryCode:
+                  type: string
+                  minLength: 2
+                  maxLength: 2
+                  description: ISO 3166-1 alpha-2 country code
+                  example: US
+              additionalProperties: true
+              description: Bank account details (structure varies by country)
+        - type: object
+          required:
+            - type
+            - label
+            - cryptoAddress
+          properties:
+            type:
+              type: string
+              enum:
+                - CRYPTO_ADDRESS
+              description: External account type
+            label:
+              type: string
+              description: Human-readable label for the external account
+              example: Ethereum Wallet
+            cryptoAddress:
+              type: object
+              required:
+                - address
+                - currency
+              properties:
+                address:
+                  type: string
+                  description: Cryptocurrency wallet address
+                  example: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+                currency:
+                  type: string
+                  description: Currency code for this address
+                  example: USDC_ETH
+              additionalProperties: true
+      description: Request to create an external account (bank account or crypto address)
+
+    ExternalAccount:
+      type: object
+      required:
+        - id
+        - type
+        - currencyId
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique external account identifier
+          example: ext_acc_12345
+        type:
+          $ref: '#/components/schemas/ExternalAccountType'
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Account-specific metadata (structure varies by type)
+        label:
+          type: string
+          description: Human-readable label for the account
+          example: Personal Checking Account
+        currencyId:
+          type: string
+          description: Currency identifier
+          example: usd-currency-id
+        customerId:
+          type: string
+          nullable: true
+          description: Customer identifier (if associated with a customer)
+          example: customer-123
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Account last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
+      description: External account entity
+
+    ExternalAccountResponse:
+      allOf:
+        - $ref: '#/components/schemas/ExternalAccount'
+        - type: object
+          properties:
+            currency:
+              $ref: '#/components/schemas/Currency'
+      description: External account with currency relation
+
+    Currency:
+      type: object
+      required:
+        - id
+        - ticker
+        - name
+        - code
+        - decimals
+        - type
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique currency identifier
+          example: usd-currency-id
+        ticker:
+          type: string
+          description: Currency ticker symbol
+          example: USDC
+        name:
+          type: string
+          description: Currency display name
+          example: USD Coin
+        code:
+          type: string
+          description: Currency code (for crypto, format is {ticker}_{blockchain.code})
+          example: USDC_ETH
+        decimals:
+          type: integer
+          description: Number of decimal places for precision
+          example: 6
+        type:
+          $ref: '#/components/schemas/CurrencyType'
+        createdAt:
+          type: string
+          format: date-time
+          description: Currency creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Currency last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
+      description: Currency entity
+
+    CreateIntentRequest:
+      type: object
+      required:
+        - srcExternalAccountId
+        - destExternalAccountId
+        - amount
+      properties:
+        srcExternalAccountId:
+          type: string
+          description: Source external account identifier
+          example: ext_acc_src_123
+        destExternalAccountId:
+          type: string
+          description: Destination external account identifier
+          example: ext_acc_dest_456
+        amount:
+          type: string
+          description: Transfer amount as a decimal string (not a number to avoid precision issues)
+          example: '100.50'
+        redirectUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Optional redirect URL after intent completion
+          example: https://example.com/callback
+      description: Request to create a payment intent
+
+    TransferAmount:
+      type: object
+      required:
+        - amount
+        - currencyCode
+      properties:
+        amount:
+          type: string
+          description: Transfer amount as a decimal string
+          example: '100.50'
+        currencyCode:
+          type: string
+          description: Currency code
+          example: USD
+      description: Transfer amount with currency
+
+    CompliancePlanStep:
+      type: object
+      required:
+        - id
+        - code
+        - description
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique step identifier
+          example: step_123
+        code:
+          type: string
+          description: Step code identifier
+          example: KYC_VERIFICATION
+        description:
+          type: string
+          description: Human-readable step description
+          example: Complete KYC verification
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Step-specific metadata
+        complianceEdge:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              description: Compliance edge identifier
+          description: Associated compliance edge
+        createdAt:
+          type: string
+          format: date-time
+          description: Step creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Step last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
+      description: Compliance plan step
+
+    CompliancePlan:
+      type: object
+      required:
+        - id
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique compliance plan identifier
+          example: compliance_plan_123
+        currentStepCode:
+          type: string
+          nullable: true
+          description: Current step code (null if completed)
+          example: KYC_VERIFICATION
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompliancePlanStep'
+          description: List of compliance plan steps
+        createdAt:
+          type: string
+          format: date-time
+          description: Plan creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Plan last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
+      description: Compliance plan for an intent
+
+    MoneyMovementPlan:
+      type: object
+      required:
+        - id
+        - type
+        - providerAccountId
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique money movement plan identifier
+          example: mm_plan_123
+        type:
+          $ref: '#/components/schemas/MoneyMovementPlanType'
+        providerAccountId:
+          type: string
+          description: Provider account identifier
+          example: provider_acc_123
+        providerAccount:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              description: Provider account identifier
+            providerCode:
+              type: string
+              description: Provider code
+              example: NOAH
+            providerName:
+              type: string
+              nullable: true
+              description: Provider display name
+              example: Noah
+          description: Provider account details
+        createdAt:
+          type: string
+          format: date-time
+          description: Plan creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Plan last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
+      description: Money movement plan for an intent
+
+    GetIntentResponse:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: object
+          required:
+            - id
+            - src
+            - dest
+            - status
+            - createdAt
+            - updatedAt
+          properties:
+            id:
+              type: string
+              description: Unique intent identifier
+              example: intent_123
+            src:
+              $ref: '#/components/schemas/ExternalAccountResponse'
+            dest:
+              $ref: '#/components/schemas/ExternalAccountResponse'
+            status:
+              $ref: '#/components/schemas/IntentStatus'
+            currentRequirementCode:
+              type: string
+              nullable: true
+              description: Current compliance requirement code
+              example: KYC_VERIFICATION
+            expiredAt:
+              type: string
+              format: date-time
+              nullable: true
+              description: Intent expiration timestamp
+              example: '2024-12-31T23:59:59.000Z'
+            createdAt:
+              type: string
+              format: date-time
+              description: Intent creation timestamp
+              example: '2024-01-01T00:00:00.000Z'
+            updatedAt:
+              type: string
+              format: date-time
+              description: Intent last update timestamp
+              example: '2024-01-01T00:00:00.000Z'
+            transferAmount:
+              $ref: '#/components/schemas/TransferAmount'
+            mmPlan:
+              $ref: '#/components/schemas/MoneyMovementPlan'
+            compliancePlan:
+              $ref: '#/components/schemas/CompliancePlan'
+            redirectUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: Redirect URL after intent completion
+        frontendUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to view the intent in the hosted frontend
+          example: https://dashboard.uramp.io/intent/intent_123
+        workflowId:
+          type: string
+          nullable: true
+          description: Temporal workflow identifier
+          example: workflow_123
+        transaction:
+          $ref: '#/components/schemas/MoneyMovementTransaction'
+          nullable: true
+          description: Money movement transaction if available
+      description: Intent response with full details
+
+    CreateIntentResponse:
+      type: object
+      required:
+        - intent
+        - frontendUrl
+        - workflowId
+      properties:
+        intent:
+          type: object
+          required:
+            - id
+            - src
+            - dest
+            - status
+            - createdAt
+            - updatedAt
+          properties:
+            id:
+              type: string
+              description: Unique intent identifier
+            src:
+              $ref: '#/components/schemas/ExternalAccountResponse'
+            dest:
+              $ref: '#/components/schemas/ExternalAccountResponse'
+            status:
+              $ref: '#/components/schemas/IntentStatus'
+            currentRequirementCode:
+              type: string
+              nullable: true
+              description: Current compliance requirement code
+            expiredAt:
+              type: string
+              format: date-time
+              nullable: true
+              description: Intent expiration timestamp
+            createdAt:
+              type: string
+              format: date-time
+              description: Intent creation timestamp
+            updatedAt:
+              type: string
+              format: date-time
+              description: Intent last update timestamp
+            transferAmount:
+              $ref: '#/components/schemas/TransferAmount'
+            mmPlan:
+              $ref: '#/components/schemas/MoneyMovementPlan'
+            compliancePlan:
+              $ref: '#/components/schemas/CompliancePlan'
+            redirectUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: Redirect URL after intent completion
+        frontendUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to view the intent in the hosted frontend (null if auto-completed)
+        workflowId:
+          type: string
+          nullable: true
+          description: Temporal workflow identifier
+        transaction:
+          $ref: '#/components/schemas/MoneyMovementTransaction'
+          nullable: true
+          description: Money movement transaction if auto-completed
+      description: Intent creation response
+
+    MoneyMovementTransaction:
+      type: object
+      required:
+        - id
+        - intentId
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique transaction identifier
+          example: txn_123
+        intentId:
+          type: string
+          description: Associated intent identifier
+          example: intent_123
+        status:
+          $ref: '#/components/schemas/MoneyMovementTransactionStatus'
+        lastActivityAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last activity timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        context:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Transaction context including deposit instructions
+        createdAt:
+          type: string
+          format: date-time
+          description: Transaction creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Transaction last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
+      description: Money movement transaction
+
+    ExecuteTransactionResponse:
+      type: object
+      required:
+        - intentId
+        - status
+        - transaction
+      properties:
+        intentId:
+          type: string
+          description: Intent identifier
+          example: intent_123
+        status:
+          type: string
+          enum:
+            - IN_PROGRESS
+          description: Transaction status
+          example: IN_PROGRESS
+        transaction:
+          $ref: '#/components/schemas/MoneyMovementTransaction'
+      description: Response from executing a money movement transaction
+
+    IntentStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - COMPLETED
+        - FAILED
+        - EXPIRED
+      description: Payment intent status
+      example: PENDING
+
+    MoneyMovementTransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - IN_PROGRESS
+        - SUCCESS
+        - FAILED
+        - CANCELLED
+      description: Money movement transaction status
+      example: PENDING
+
+    ExternalAccountType:
+      type: string
+      enum:
+        - BANK_ACCOUNT
+        - CRYPTO_ADDRESS
+      description: External account type
+      example: BANK_ACCOUNT
+
+    MoneyMovementPlanType:
+      type: string
+      enum:
+        - ONRAMP
+        - OFFRAMP
+      description: Money movement plan type
+      example: ONRAMP
+
+    CurrencyType:
+      type: string
+      enum:
+        - FIAT
+        - CRYPTO
+      description: Currency type
+      example: FIAT

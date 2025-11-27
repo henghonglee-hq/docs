@@ -1,0 +1,28 @@
+---
+title: "Using the API Reference"
+description: "Navigate the OpenAPI spec, environments, and authentication models."
+---
+
+The **API reference** tab loads the same OpenAPI document the dashboard uses. Use it to explore every path, schema, and security model.
+
+| Item | Value |
+| --- | --- |
+| Production base URL | `https://api.gnosisramp.io/v1` |
+| Sandbox base URL | `https://sandbox.api.gnosisramp.io/v1` |
+| Content type | `application/json` |
+| Auth schemes | HTTP Basic (project client credentials), Bearer (GnosisRamp JWT) |
+
+### Calling the APIs
+
+1. **Token exchange** and other project-scoped endpoints expect HTTP Basic headers: `Authorization: Basic base64(clientId:clientSecret)`.
+2. Customer-scoped endpoints (`/customers/{id}/external-accounts`, `/intent`, `/intent/:id/transaction`, etc.) expect `Authorization: Bearer <GNOSISRAMP_JWT>` obtained from the token-exchange flow.
+3. All request bodies should be JSON; numbers such as transfer amounts must be strings (see the Money Movement section for precision rules).
+
+### Working with the spec
+
+- **Download the spec**: [openapi.yaml](/openapi.yaml)
+- Import into Postman, Insomnia, or your favourite client to bootstrap requests.
+- Use the schema definitions for strongly typed clients; they include enums for rails, currencies, and webhook events.
+- The Mintlify playground supports live requests once you provide credentials in the "Headers" panel.
+
+If something is missing from the reference, check the Guides tab — it contains conceptual explanations plus runnable snippets.

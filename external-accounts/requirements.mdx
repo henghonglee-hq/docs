@@ -1,32 +1,35 @@
 ---
 title: "Fetching External Account Requirements"
-description: "Use JSON Schema responses to validate bank rails and blockchain addresses before calling the API."
+description: "Use JSON Schema responses to validate source and destination account forms before calling the API."
 ---
 
 GnosisRamp exposes dynamic JSON Schemas so you can render or validate external account forms without reverse-engineering provider requirements.
 
 ## Query Parameters
 
-Call `GET /external-accounts/requirements` with **exactly one** of these parameters:
+Call `GET /external-accounts/requirements` with **both** of these parameters:
 
-- `countryCode` (e.g., `US`, `BR`, `AR`) for **bank accounts**
-- `blockchain` (e.g., `ETH`, `BTC`, `SOL`) for **crypto addresses**
+- `src` — source currency code (e.g., `USD`, `EUR`, `BRL`)
+- `dest` — destination currency code (e.g., `USDC_GNO`, `USDC_ETH`, `USDC_BASE`)
 
 <Note>
-  You must provide either `countryCode` OR `blockchain`, but not both. Requests with both parameters will return `400 Bad Request`.
+  Both `src` and `dest` are required. The response returns JSON Schemas for both the source and destination accounts.
 </Note>
 
-## Bank Account Requirements
+## Example Request
 
 ```bash
-curl "https://api.gnosisramp.io/v1/external-accounts/requirements?countryCode=US" \
+curl "https://api.gnosisramp.io/v1/external-accounts/requirements?src=USD&dest=USDC_GNO" \
   -H "Authorization: Bearer $GNOSISRAMP_TOKEN"
 ```
 
+## Example Response
+
 ```json
 {
-  "countryCode": "US",
-  "schema": {
+  "src": "USD",
+  "dest": "USDC_GNO",
+  "source": {
     "type": "object",
     "required": ["rails", "currency", "institutionName", "accountIdentifier", "beneficiary"],
     "properties": {
@@ -51,23 +54,8 @@ curl "https://api.gnosisramp.io/v1/external-accounts/requirements?countryCode=US
         }
       }
     }
-  }
-}
-```
-
-## Crypto Address Requirements
-
-For blockchain addresses:
-
-```bash
-curl "https://api.gnosisramp.io/v1/external-accounts/requirements?blockchain=ETH" \
-  -H "Authorization: Bearer $GNOSISRAMP_TOKEN"
-```
-
-```json
-{
-  "blockchain": "ETHEREUM",
-  "schema": {
+  },
+  "destination": {
     "type": "object",
     "required": ["address", "currency"],
     "properties": {
@@ -76,14 +64,17 @@ curl "https://api.gnosisramp.io/v1/external-accounts/requirements?blockchain=ETH
         "description": "Wallet address"
       },
       "currency": {
-        "enum": ["USDC_ETH", "USDT_ETH"]
+        "enum": ["USDC_GNO"]
       }
     }
   }
 }
 ```
 
+The `source` schema defines the fields needed for the source account (e.g., bank account details), while `destination` defines the fields for the destination account (e.g., crypto wallet address).
+
 ## Best Practices
 
 - Always fetch the schema at runtime — providers can add new rails or metadata without requiring an API change.
-- Use the schema to power both client-side validation and your own backend sanitization before calling the creation endpoint.
+- Use the schemas to power both client-side validation and your own backend sanitization before calling the creation endpoint.
+- The currency code format follows: fiat codes like `USD`, `EUR`, `BRL` and crypto codes like `USDC_GNO`, `USDC_ETH` (format: `{ticker}_{blockchain}`).

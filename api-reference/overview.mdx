@@ -14,8 +14,8 @@ The **API reference** tab loads the same OpenAPI document the dashboard uses. Us
 
 ### Calling the APIs
 
-1. **Token exchange** and other project-scoped endpoints expect HTTP Basic headers: `Authorization: Basic base64(clientId:clientSecret)`.
-2. Customer-scoped endpoints (`/customers/{id}/external-accounts`, `/intent`, `/intent/:id/transaction`, etc.) expect `Authorization: Bearer <GNOSISRAMP_JWT>` obtained from the token-exchange flow.
+1. **Customer creation** and other project-scoped endpoints expect HTTP Basic headers: `Authorization: Basic base64(clientId:clientSecret)`.
+2. Customer-scoped endpoints (`/customers/external-accounts`, `/intent`, `/intent/:id/transaction`, etc.) expect `Authorization: Bearer <GNOSISRAMP_JWT>` obtained from the customer creation flow.
 3. All request bodies should be JSON; numbers such as transfer amounts must be strings (see the Money Movement section for precision rules).
 
 ### Working with the spec

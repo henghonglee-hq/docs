@@ -17,17 +17,26 @@ curl -X POST https://api.gnosisramp.io/v1/intent/$INTENT_ID/transaction \
 
 ## Poll the transaction
 
+Use `GET /intent/{intentId}/transaction` to check the current transaction status and retrieve deposit instructions.
+
 ```bash
 curl -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
   https://api.gnosisramp.io/v1/intent/$INTENT_ID/transaction
 ```
+
+**Recommended polling interval:** every 5 seconds while the transaction is in `PENDING` or `IN_PROGRESS` status. Stop polling when the transaction reaches a terminal state (`SUCCESS`, `FAILED`, `CANCELLED`).
+
+See the [Polling Best Practices](/intents/polling) guide for detailed recommendations.
 
 ### Deposit instruction format
 
 ```json
 {
   "id": "txn_789",
+  "intentId": "int_123",
   "status": "IN_PROGRESS",
+  "providerReference": "noah_txn_abc123",
+  "lastActivityAt": "2025-01-12T21:46:00.000Z",
   "context": [
     {
       "kind": "CRYPTO",
@@ -51,7 +60,9 @@ curl -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
         ]
       }
     }
-  ]
+  ],
+  "createdAt": "2025-01-12T21:45:30.000Z",
+  "updatedAt": "2025-01-12T21:46:00.000Z"
 }
 ```
 
@@ -63,8 +74,9 @@ curl -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
 
 | Status | Description |
 | --- | --- |
+| `PENDING` | Transaction created, awaiting provider processing. |
 | `IN_PROGRESS` | Transaction created, waiting for customer funds or provider confirmation. |
-| `COMPLETED` | Provider confirmed settlement; outgoing event sent. |
+| `SUCCESS` | Provider confirmed settlement; outgoing event sent. |
 | `FAILED` | Provider returned an error; check the transaction response for error details. |
 | `CANCELLED` | Transaction was cancelled or the intent expired. |
 
@@ -83,4 +95,4 @@ When a transaction status changes, GnosisRamp emits a `MONEY_MOVEMENT_UPDATED` w
 }
 ```
 
-Use outgoing webhooks (see the Webhooks section) or poll the transaction endpoint to keep your UI up to date.
+Use outgoing webhooks (see the [Webhooks](/webhooks/outgoing) section) or poll the transaction endpoint to keep your UI up to date.

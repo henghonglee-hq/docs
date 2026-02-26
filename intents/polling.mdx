@@ -1,0 +1,68 @@
+---
+title: "Polling Best Practices"
+description: "Recommended intervals and strategies for checking intent and transaction status."
+---
+
+If you're not using [outgoing webhooks](/webhooks/outgoing), polling is the primary way to track intent and transaction status changes.
+
+## Recommended Intervals
+
+| What to poll | Endpoint | Interval | Stop when |
+| --- | --- | --- | --- |
+| Transaction status | `GET /intent/{intentId}/transaction` | Every **5 seconds** | `SUCCESS`, `FAILED`, or `CANCELLED` |
+| Intent history | `GET /intent` | Every **15 seconds** | No active intents remain |
+| Single intent | `GET /intent/{id}` | Every **5 seconds** | `COMPLETED`, `FAILED`, or `EXPIRED` |
+
+## Transaction Polling
+
+The most common polling pattern is checking transaction status after creating or auto-completing an intent:
+
+```js
+async function pollTransaction(intentId, token) {
+  const terminalStates = ['SUCCESS', 'FAILED', 'CANCELLED'];
+
+  const poll = setInterval(async () => {
+    const response = await fetch(
+      `https://api.gnosisramp.io/v1/intent/${intentId}/transaction`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+
+    if (!response.ok) return; // retry on next interval
+
+    const txn = await response.json();
+
+    if (terminalStates.includes(txn.status)) {
+      clearInterval(poll);
+      handleTerminalState(txn);
+    } else {
+      updateUI(txn); // show latest deposit instructions, status
+    }
+  }, 5000);
+}
+```
+
+## Terminal States
+
+Stop polling once you reach any of these states:
+
+**Intent statuses:**
+- `COMPLETED` — all steps finished successfully
+- `FAILED` — a compliance or provider error occurred
+- `EXPIRED` — the intent timed out
+
+**Transaction statuses:**
+- `SUCCESS` — funds settled
+- `FAILED` — provider error
+- `CANCELLED` — transaction cancelled or intent expired
+
+## Webhooks as an Alternative
+
+For production integrations, consider using [outgoing webhooks](/webhooks/outgoing) instead of polling. Webhooks push status updates to your server in real time, reducing latency and API load.
+
+You can combine both approaches: use webhooks as the primary notification mechanism and polling as a fallback to ensure you never miss an update.
+
+| Approach | Latency | Complexity | Reliability |
+| --- | --- | --- | --- |
+| Polling only | Up to poll interval | Low | High (you control the schedule) |
+| Webhooks only | Near real-time | Medium (signature verification, retries) | Depends on endpoint uptime |
+| Webhooks + polling fallback | Near real-time | Higher | Highest |

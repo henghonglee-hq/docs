@@ -19,25 +19,32 @@
           },
           {
             "group": "Authentication & Access",
-            "pages": ["auth/project-access", "auth/token-exchange"]
+            "pages": [
+              "auth/project-access",
+              "auth/token-exchange",
+              "auth/gnosispay-wallet"
+            ]
           },
           {
             "group": "Customers & External Accounts",
             "pages": [
-              "external-accounts/creating",
-              "external-accounts/requirements"
+              "external-accounts/requirements",
+              "external-accounts/creating"
             ]
           },
           {
             "group": "Intents & Compliance",
             "pages": [
               "intents/lifecycle",
-              "intents/auto-complete"
+              "intents/auto-complete",
+              "intents/iframe-integration",
+              "intents/polling"
             ]
           },
           {
             "group": "Money Movement",
             "pages": [
+              "money-movement/currencies",
               "money-movement/transactions",
               "money-movement/amounts"
             ]
@@ -78,7 +85,14 @@
               "api-reference/endpoints/intents/get-all-payment-intents",
               "api-reference/endpoints/intents/create-payment-intent",
               "api-reference/endpoints/intents/get-payment-intent",
-              "api-reference/endpoints/intents/execute-transaction-for-payment-intent"
+              "api-reference/endpoints/intents/execute-transaction-for-payment-intent",
+              "api-reference/endpoints/intents/get-transaction-for-payment-intent"
+            ]
+          },
+          {
+            "group": "Currencies",
+            "pages": [
+              "api-reference/endpoints/currencies/get-supported-currency-pairs"
             ]
           }
         ]
@@ -91,7 +105,7 @@
   },
   "openapi": ["/openapi.yaml"],
   "api": {
-    "baseUrl": "https://app.gnosisramp.com/api/v1",
+    "baseUrl": "https://api.gnosisramp.io/v1",
     "playground": {
       "mode": "simple"
     }

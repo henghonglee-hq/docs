@@ -1,29 +1,37 @@
 ---
 title: "Creating External Accounts"
-description: "Persist bank accounts and crypto addresses so intents can route funds to the right destination."
+description: "Persist paired source and destination accounts so intents can route funds correctly."
 ---
 
-External accounts represent the bank accounts or crypto addresses where funds will be sent or received. Before creating an external account, you need to fetch the requirement schema for the specific country or blockchain you're working with.
+External accounts represent the bank accounts or crypto addresses where funds will be sent or received. GnosisRamp creates external accounts in **pairs** — one source and one destination — to match a specific currency route.
 
 <Note>
-  **First step**: Retrieve the JSON Schema requirements by following the [Fetching External Account Requirements](/external-accounts/requirements) guide. This schema defines the exact fields and validation rules for each rail or blockchain.
+  **First step**: Retrieve the JSON Schema requirements by following the [Fetching External Account Requirements](/external-accounts/requirements) guide. The schemas define the exact fields and validation rules for each account type.
 </Note>
 
-Once you have a GnosisRamp JWT and the requirement schema, call `POST /customers/{customerId}/external-accounts` to register the destination. The payload must match the schema you fetched.
+## Paired Creation
 
-### Example — US ACH account
+Once you have a GnosisRamp JWT and the requirement schemas, call `POST /customers/external-accounts` to register both the source and destination accounts in a single request. The customer ID is automatically extracted from the JWT — no need to include it in the URL.
+
+The request body uses four fields:
+
+- `src` — source currency code (e.g., `USD`)
+- `dest` — destination currency code (e.g., `USDC_GNO`)
+- `source` — metadata object conforming to the `source` JSON Schema from requirements
+- `destination` — metadata object conforming to the `destination` JSON Schema from requirements
+
+### Example — USD to USDC on Gnosis
 
 ```bash cURL
-curl -X POST https://api.gnosisramp.io/v1/customers/$CUSTOMER_ID/external-accounts \
+curl -X POST https://api.gnosisramp.io/v1/customers/external-accounts \
   -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-        "type": "BANK_ACCOUNT",
-        "label": "Personal Checking",
-        "bankAccount": {
+        "src": "USD",
+        "dest": "USDC_GNO",
+        "source": {
           "rails": "ACH",
           "currency": "USD",
-          "countryCode": "US",
           "institutionName": "Chase Bank",
           "accountIdentifier": {
             "routingNumber": "021000021",
@@ -33,27 +41,42 @@ curl -X POST https://api.gnosisramp.io/v1/customers/$CUSTOMER_ID/external-accoun
             "name": "Jane Doe",
             "taxId": "123-45-6789"
           }
-        }
-      }'
-```
-
-### Example — Ethereum address
-
-```bash cURL
-curl -X POST https://api.gnosisramp.io/v1/customers/$CUSTOMER_ID/external-accounts \
-  -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-        "type": "CRYPTO_ADDRESS",
-        "label": "MetaMask Wallet",
-        "cryptoAddress": {
+        },
+        "destination": {
           "address": "0x742d35Cc6634C0532925a3b84cF2f7c7f3B2f5f8",
-          "currency": "USDC_ETH"
+          "currency": "USDC_GNO"
         }
       }'
 ```
 
-The response echoes the stored metadata plus the resolved currency information. Persist the returned `id` — you will reference it when creating intents.
+### Response
+
+```json
+{
+  "source": {
+    "id": "ext_acc_src_123",
+    "type": "BANK_ACCOUNT",
+    "label": null,
+    "metadata": { "rails": "ACH", "currency": "USD", "..." },
+    "currencyId": "usd-currency-id",
+    "currency": { "code": "USD", "ticker": "USD", "type": "FIAT", "decimals": 2, "..." },
+    "createdAt": "2025-01-12T21:45:11.201Z",
+    "updatedAt": "2025-01-12T21:45:11.201Z"
+  },
+  "destination": {
+    "id": "ext_acc_dest_456",
+    "type": "CRYPTO_ADDRESS",
+    "label": null,
+    "metadata": { "address": "0x742d35Cc...", "currency": "USDC_GNO" },
+    "currencyId": "usdc-gno-currency-id",
+    "currency": { "code": "USDC_GNO", "ticker": "USDC", "type": "CRYPTO", "decimals": 6, "..." },
+    "createdAt": "2025-01-12T21:45:11.201Z",
+    "updatedAt": "2025-01-12T21:45:11.201Z"
+  }
+}
+```
+
+Persist the returned `source.id` and `destination.id` — you will reference them as `srcExternalAccountId` and `destExternalAccountId` when creating intents.
 
 ### Error handling
 
@@ -64,6 +87,6 @@ The response echoes the stored metadata plus the resolved currency information. 
 
 ### Best practices
 
-- Store human-friendly `label`s so operators and customers can recognise accounts in dashboards.
-- Use separate accounts for source vs destination legs when building cross-border flows — GnosisRamp needs both IDs on the intent.
-- Rotate sensitive metadata (like routing numbers) through your own vault when displaying them; GnosisRamp stores the canonical copy for routing.
+- Always create accounts as pairs for a specific currency route — GnosisRamp needs both source and destination IDs on the intent.
+- Validate your `source` and `destination` objects against the JSON Schemas from the requirements endpoint before submitting.
+- Query [supported currencies](/money-movement/currencies) first to know which `src`/`dest` combinations are available.

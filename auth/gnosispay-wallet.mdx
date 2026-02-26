@@ -1,0 +1,135 @@
+---
+title: "GnosisPay Wallet Authentication"
+description: "Authenticate customers using Sign-In with Ethereum (SIWE) as an alternative to OIDC."
+---
+
+GnosisRamp supports wallet-based authentication via **Sign-In with Ethereum (SIWE)** for GnosisPay users. This flow lets customers authenticate by signing a message with their Ethereum wallet instead of providing an OIDC token.
+
+## Authentication Flow
+
+<Steps>
+  <Step title="Request a nonce">
+    Call `GET /gnosispay/auth/nonce` to retrieve a one-time nonce. No authentication is required for this endpoint.
+  </Step>
+  <Step title="Sign the SIWE message">
+    Construct a SIWE message using the nonce and sign it with the customer's wallet. The message must use **chain ID 100** (Gnosis Chain).
+  </Step>
+  <Step title="Verify the signature">
+    Call `POST /gnosispay/auth/challenge` with the signed message and signature. The API returns a token on successful verification.
+  </Step>
+  <Step title="Exchange for a GnosisRamp JWT">
+    Use the resulting token as the `subject_token` in `POST /customers` to obtain a GnosisRamp JWT, just like the OIDC flow.
+  </Step>
+</Steps>
+
+## Step 1: Get a nonce
+
+```bash
+curl https://api.gnosisramp.io/v1/gnosispay/auth/nonce
+```
+
+The response is a plain-text nonce string.
+
+## Step 2: Sign the SIWE message
+
+Construct and sign the SIWE message on the client side. The message must target Gnosis Chain (chain ID `100`).
+
+```js
+import { SiweMessage } from 'siwe';
+
+const message = new SiweMessage({
+  domain: 'gnosisramp.io',
+  address: walletAddress,
+  statement: 'Sign in to GnosisRamp',
+  uri: 'https://api.gnosisramp.io',
+  version: '1',
+  chainId: 100,
+  nonce: nonce, // from Step 1
+});
+
+const messageString = message.prepareMessage();
+const signature = await signer.signMessage(messageString);
+```
+
+## Step 3: Verify the signature
+
+```bash
+curl -X POST https://api.gnosisramp.io/v1/gnosispay/auth/challenge \
+  -H "Content-Type: application/json" \
+  -d '{
+        "message": "<SIWE_MESSAGE_STRING>",
+        "signature": "<WALLET_SIGNATURE>",
+        "ttlInSeconds": 3600
+      }'
+```
+
+- `message` — the full SIWE message string
+- `signature` — the wallet signature
+- `ttlInSeconds` (optional) — token time-to-live in seconds
+
+## Step 4: Exchange for a GnosisRamp JWT
+
+Use the token from Step 3 as the `subject_token` when creating a customer:
+
+```bash
+curl -X POST https://api.gnosisramp.io/v1/customers \
+  -u "${GNOSISRAMP_CLIENT_ID}:${GNOSISRAMP_CLIENT_SECRET}" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "id": "gnosis-wallet-user-123",
+        "subject_token": "<TOKEN_FROM_CHALLENGE>"
+      }'
+```
+
+The response includes an `access_token` JWT that you use for all customer-scoped API calls, identical to the OIDC flow.
+
+## Full JavaScript Example
+
+```js
+import { SiweMessage } from 'siwe';
+
+// 1. Get nonce
+const nonce = await fetch('https://api.gnosisramp.io/v1/gnosispay/auth/nonce')
+  .then(r => r.text());
+
+// 2. Sign SIWE message
+const message = new SiweMessage({
+  domain: 'gnosisramp.io',
+  address: walletAddress,
+  statement: 'Sign in to GnosisRamp',
+  uri: 'https://api.gnosisramp.io',
+  version: '1',
+  chainId: 100,
+  nonce,
+});
+const messageString = message.prepareMessage();
+const signature = await signer.signMessage(messageString);
+
+// 3. Verify signature
+const challengeResponse = await fetch(
+  'https://api.gnosisramp.io/v1/gnosispay/auth/challenge',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: messageString, signature }),
+  }
+).then(r => r.json());
+
+// 4. Exchange for GnosisRamp JWT
+const customerResponse = await fetch(
+  'https://api.gnosisramp.io/v1/customers',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+    },
+    body: JSON.stringify({
+      id: `gp-${walletAddress}`,
+      subject_token: challengeResponse.token,
+    }),
+  }
+).then(r => r.json());
+
+// Use customerResponse.access_token for subsequent API calls
+```

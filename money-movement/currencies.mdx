@@ -1,0 +1,77 @@
+---
+title: "Supported Currencies"
+description: "Discover which currency pairs and providers are available for your project."
+---
+
+Before creating external accounts or intents, query `GET /currencies/supported` to discover which source-to-destination currency routes are available for your project.
+
+## Request
+
+```bash
+curl https://api.gnosisramp.io/v1/currencies/supported \
+  -u "${GNOSISRAMP_CLIENT_ID}:${GNOSISRAMP_CLIENT_SECRET}"
+```
+
+This endpoint uses **Basic Auth** (project credentials), not a customer JWT.
+
+## Response
+
+```json
+[
+  {
+    "from": "USD",
+    "to": "USDC_GNO",
+    "providers": [
+      { "id": "provider_123", "name": "Noah", "code": "NOAH" }
+    ]
+  },
+  {
+    "from": "EUR",
+    "to": "USDC_GNO",
+    "providers": [
+      { "id": "provider_456", "name": "Noah", "code": "NOAH" }
+    ]
+  },
+  {
+    "from": "BRL",
+    "to": "USDC_BASE",
+    "providers": [
+      { "id": "provider_789", "name": "Belo", "code": "BELO" }
+    ]
+  }
+]
+```
+
+Each entry represents a supported route with:
+
+- `from` — source currency code
+- `to` — destination currency code
+- `providers` — list of providers that can handle this route
+
+## Currency Code Format
+
+| Type | Format | Examples |
+| --- | --- | --- |
+| Fiat | Standard ISO 4217 | `USD`, `EUR`, `BRL`, `ARS` |
+| Crypto | `{ticker}_{blockchain}` | `USDC_ETH`, `USDC_GNO`, `USDC_BASE` |
+
+## Using the Response
+
+Use the supported currencies list to:
+
+1. **Build currency selectors** — only show users the currency pairs your project supports.
+2. **Pass `src`/`dest` to requirements** — use the `from`/`to` values when calling `GET /external-accounts/requirements`.
+3. **Validate before account creation** — ensure the currency pair is supported before creating external accounts.
+
+```ts
+const pairs = await fetch('https://api.gnosisramp.io/v1/currencies/supported', {
+  headers: { 'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}` },
+}).then(r => r.json());
+
+// Build a map of source currencies to their destinations
+const routes = {};
+for (const pair of pairs) {
+  if (!routes[pair.from]) routes[pair.from] = [];
+  routes[pair.from].push({ to: pair.to, providers: pair.providers });
+}
+```

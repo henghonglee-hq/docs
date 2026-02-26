@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: GnosisRamp API
-  version: 0.0.1
+  version: 1.0.0
 servers:
-  - url: https://app.gnosisramp.com/api/v1
+  - url: https://api.gnosisramp.io/v1
     description: Production
-  - url: https://api-dev.gnosisramp.com/api/v1
+  - url: https://sandbox.api.gnosisramp.io/v1
     description: Sandbox
 security:
-  - clientCredentials: []
+  - basicAuth: []
   - bearerToken: []
 tags:
   - name: Customers
@@ -17,28 +17,33 @@ tags:
     description: External account and requirements management
   - name: Intents
     description: Payment intent management
-  
+  - name: Currencies
+    description: Supported currency pairs and providers
+
 paths:
 
-  /customers/token-exchange:
+  /customers:
     post:
       tags:
         - Customers
       summary: Create customer
       description: |
-        Create a new customer or retrieve an existing one using OIDC token exchange.
+        Create a new customer or retrieve an existing one.
 
-        This endpoint validates an OIDC token and creates a customer record if one doesn't exist
-        for the authenticated user. If a customer already exists for the token's user identifier,
-        it returns the existing customer.
+        Pass a unique `id` to identify the customer within your system. Optionally include a
+        `subject_token` (OIDC ID token) to link the customer to an identity provider.
+        If a customer already exists for the given `id`, it returns the existing customer.
+
+        The response includes an `access_token` JWT used to authenticate customer-scoped
+        requests (external accounts, intents, transactions).
       security:
-        - clientCredentials: []
+        - basicAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerTokenExchangeRequest'
+              $ref: '#/components/schemas/CreateCustomerRequest'
       responses:
         '201':
           description: Customer created or retrieved successfully
@@ -52,7 +57,7 @@ paths:
                       access_token:
                         type: string
                         nullable: true
-                        description: uRamp JWT token for authenticated customer requests
+                        description: GnosisRamp JWT token for authenticated customer requests
         '401':
           description: Missing or invalid client credentials
           content:
@@ -71,8 +76,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /customers:
     get:
       tags:
         - Customers
@@ -83,7 +86,7 @@ paths:
         Returns customers associated with the current organization and project
         based on the authentication context.
       security:
-        - clientCredentials: []
+        - basicAuth: []
       responses:
         '200':
           description: List of customers
@@ -114,33 +117,34 @@ paths:
       description: |
         Retrieve JSON Schema requirements for creating external accounts.
 
-        Returns country-specific requirements for bank accounts or blockchain-specific requirements
-        for crypto addresses. The schemas include validation rules, field formats, and supported
+        Pass `src` and `dest` currency codes to get the schema requirements for both
+        the source and destination accounts in a currency pair.
+        The schemas include validation rules, field formats, and supported
         currencies/rails for dynamic form generation.
       parameters:
         - in: query
-          name: countryCode
+          name: src
+          required: true
           schema:
             type: string
-            minLength: 2
-            maxLength: 2
-          description: ISO 3166-1 alpha-2 country code (e.g., US, BR, AR). Must provide either countryCode or blockchain, not both.
+          description: Source currency code (e.g., `USD`, `EUR`, `BRL`)
+          example: USD
         - in: query
-          name: blockchain
+          name: dest
+          required: true
           schema:
             type: string
-          description: Blockchain name (e.g., ETH, BTC, SOL, TRON, BASE, POL, ARB, OP, GNOSIS). Must provide either countryCode or blockchain, not both.
+          description: Destination currency code (e.g., `USDC_GNO`, `USDC_ETH`, `USDC_BASE`)
+          example: USDC_GNO
       responses:
         '200':
           description: Requirements retrieved successfully
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/CountryRequirementsResponse'
-                  - $ref: '#/components/schemas/BlockchainRequirementsResponse'
+                $ref: '#/components/schemas/RequirementsResponse'
         '400':
-          description: Bad request - must provide either countryCode or blockchain
+          description: Bad request - must provide both src and dest
           content:
             application/json:
               schema:
@@ -150,17 +154,19 @@ paths:
     post:
       tags:
         - External Accounts
-      summary: Create external account
+      summary: Create external account pair
       description: |
-        Create a new external account for the authenticated customer.
+        Create a paired source and destination external account for the authenticated customer.
 
-        External accounts represent customer-owned financial accounts such as bank accounts,
-        crypto wallets, or digital wallets that can be used in payment intents.
+        External accounts represent customer-owned financial accounts such as bank accounts
+        and crypto wallets used in payment intents. Accounts are always created in pairs —
+        one source and one destination — to match a specific currency route.
 
         The customer ID is automatically extracted from the JWT bearer token.
 
-        For bank accounts, the `countryCode` field is required in the `bankAccount` object
-        and must be a valid ISO 3166-1 alpha-2 country code (e.g., "US", "BR", "AR").
+        The `src` and `dest` fields are currency codes (e.g., `USD`, `USDC_GNO`).
+        The `source` and `destination` fields are metadata objects that must conform to
+        the JSON Schemas returned by `GET /external-accounts/requirements`.
       security:
         - bearerToken: []
       requestBody:
@@ -168,14 +174,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateExternalAccountRequest'
+              $ref: '#/components/schemas/CreateExternalAccountPairRequest'
       responses:
         '201':
-          description: External account created successfully
+          description: External account pair created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExternalAccountResponse'
+                $ref: '#/components/schemas/CreateExternalAccountPairResponse'
         '400':
           description: Bad request or validation failed
           content:
@@ -183,7 +189,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Missing or invalid uRamp bearer token
+          description: Missing or invalid bearer token
           content:
             application/json:
               schema:
@@ -215,7 +221,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/ExternalAccountResponse'
         '401':
-          description: Missing or invalid uRamp bearer token
+          description: Missing or invalid bearer token
           content:
             application/json:
               schema:
@@ -226,14 +232,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-    
+
+  /currencies/supported:
+    get:
+      tags:
+        - Currencies
+      summary: Get supported currency pairs
+      description: |
+        Retrieve the list of supported currency pairs and their available providers.
+
+        Use this endpoint to discover which source-to-destination currency routes are
+        available before creating external accounts or intents.
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: List of supported currency pairs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupportedCurrencyPair'
+        '401':
+          description: Missing or invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /intent:
     get:
       tags:
         - Intents
       summary: Get all payment intents
       description: |
-        Retrieve all payment intents for the authenticated customer
+        Retrieve all payment intents for the authenticated customer.
 
         Returns a list of all payment intents created by the authenticated customer,
         ordered by creation date (most recent first). Each intent includes its current
@@ -250,7 +290,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/GetIntentResponse'
         '401':
-          description: Missing or invalid uRamp bearer token
+          description: Missing or invalid bearer token
           content:
             application/json:
               schema:
@@ -266,10 +306,10 @@ paths:
         - Intents
       summary: Create payment intent
       description: |
-        Create a new payment intent between source and destination external accounts
+        Create a new payment intent between source and destination external accounts.
 
         The system will automatically find the optimal routing path and create compliance requirements
-        based on the source and destination external accounts. Requires user authentication via uRamp JWT token.
+        based on the source and destination external accounts. Requires user authentication via bearer token.
 
         **Auto-Complete Feature**: For returning customers who have already completed compliance requirements,
         the API will automatically create a transaction and return deposit instructions immediately,
@@ -299,7 +339,7 @@ paths:
                   - $ref: '#/components/schemas/ErrorResponse'
                   - $ref: '#/components/schemas/AmountValidationError'
         '401':
-          description: Missing or invalid uRamp bearer token
+          description: Missing or invalid bearer token
           content:
             application/json:
               schema:
@@ -310,14 +350,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-    
+
   /intent/{id}:
     get:
       tags:
         - Intents
       summary: Get payment intent
       description: |
-        Retrieve details of a specific payment intent by ID
+        Retrieve details of a specific payment intent by ID.
 
         The response includes all intent details, compliance plan status, and associated transaction
         data with deposit instructions if a transaction has been created.
@@ -344,7 +384,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Missing or invalid uRamp bearer token
+          description: Missing or invalid bearer token
           content:
             application/json:
               schema:
@@ -357,7 +397,7 @@ paths:
       summary: Execute transaction for payment intent
       description: |
         Initiates provider transaction execution for an intent.
-        The underlying Temporal workflow processes this transaction asynchronously.
+        The underlying workflow processes this transaction asynchronously.
 
         **Prerequisites**:
         - Compliance plan must be completed (`currentStepCode` = "COMPLETED")
@@ -387,7 +427,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Missing or invalid uRamp bearer token
+          description: Missing or invalid bearer token
           content:
             application/json:
               schema:
@@ -404,33 +444,83 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - Intents
+      summary: Get transaction for payment intent
+      description: |
+        Retrieve the current transaction status and deposit instructions for an intent.
+
+        Use this endpoint to poll for transaction status updates. Recommended polling
+        interval is every 5 seconds while the transaction is in `PENDING` or `IN_PROGRESS` status.
+        Stop polling when the transaction reaches a terminal state (`SUCCESS`, `FAILED`, `CANCELLED`).
+      security:
+        - bearerToken: []
+      parameters:
+        - in: path
+          name: intentId
+          required: true
+          schema:
+            type: string
+          description: Intent identifier
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoneyMovementTransaction'
+        '401':
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Intent or transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
-    clientCredentials:
-      type: oauth2
-      flows:
-        clientCredentials:
-          tokenUrl: https://app.gnosisramp.com/api/v1/auth/token
-          scopes: {}
-      description: OAuth2 client credentials flow for API authentication
+    basicAuth:
+      type: http
+      scheme: basic
+      description: HTTP Basic authentication using project clientId and clientSecret
     bearerToken:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: uRamp JWT bearer token for authenticated customer requests
+      description: GnosisRamp JWT bearer token for authenticated customer requests
 
   schemas:
-    CustomerTokenExchangeRequest:
+    CreateCustomerRequest:
       type: object
       required:
-        - subject_token
+        - id
       properties:
+        id:
+          type: string
+          description: Unique customer identifier within your system
+          example: user_12345
         subject_token:
           type: string
-          description: OIDC token to exchange for customer authentication
+          description: Optional OIDC ID token for identity provider linking
           example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
-      description: Request body for customer token exchange
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Optional metadata to associate with the customer
+      description: Request body for customer creation
 
     Customer:
       type: object
@@ -503,101 +593,69 @@ components:
           example: amount exceeds allowed precision of 2 decimal places
       description: Specialized error response for amount precision validation failures
 
-    CountryRequirementsResponse:
+    RequirementsResponse:
       type: object
       required:
-        - countryCode
-        - schema
+        - src
+        - dest
+        - source
+        - destination
       properties:
-        countryCode:
+        src:
           type: string
-          minLength: 2
-          maxLength: 2
-          description: ISO 3166-1 alpha-2 country code
-          example: US
-        schema:
+          description: Source currency code
+          example: USD
+        dest:
+          type: string
+          description: Destination currency code
+          example: USDC_GNO
+        source:
           type: object
           additionalProperties: true
-          description: JSON Schema defining the requirements for bank accounts in this country
-      description: Country-specific external account requirements
+          description: JSON Schema defining the requirements for the source account (e.g., bank account fields)
+        destination:
+          type: object
+          additionalProperties: true
+          description: JSON Schema defining the requirements for the destination account (e.g., crypto address fields)
+      description: Paired external account requirements for a currency route
 
-    BlockchainRequirementsResponse:
+    CreateExternalAccountPairRequest:
       type: object
       required:
-        - blockchain
-        - schema
+        - src
+        - dest
+        - source
+        - destination
       properties:
-        blockchain:
+        src:
           type: string
-          description: Blockchain name
-          example: ETHEREUM
-        schema:
+          description: Source currency code (e.g., `USD`, `EUR`, `BRL`)
+          example: USD
+        dest:
+          type: string
+          description: Destination currency code (e.g., `USDC_GNO`, `USDC_ETH`)
+          example: USDC_GNO
+        source:
           type: object
           additionalProperties: true
-          description: JSON Schema defining the requirements for crypto addresses on this blockchain
-      description: Blockchain-specific external account requirements
+          description: Source account metadata matching the `source` JSON Schema from requirements
+        destination:
+          type: object
+          additionalProperties: true
+          description: Destination account metadata matching the `destination` JSON Schema from requirements
+      description: Request to create a paired source and destination external account
 
-    CreateExternalAccountRequest:
-      oneOf:
-        - type: object
-          required:
-            - type
-            - label
-            - bankAccount
-          properties:
-            type:
-              type: string
-              enum:
-                - BANK_ACCOUNT
-              description: External account type
-            label:
-              type: string
-              description: Human-readable label for the external account
-              example: Personal Checking Account
-            bankAccount:
-              type: object
-              required:
-                - countryCode
-              properties:
-                countryCode:
-                  type: string
-                  minLength: 2
-                  maxLength: 2
-                  description: ISO 3166-1 alpha-2 country code
-                  example: US
-              additionalProperties: true
-              description: Bank account details (structure varies by country)
-        - type: object
-          required:
-            - type
-            - label
-            - cryptoAddress
-          properties:
-            type:
-              type: string
-              enum:
-                - CRYPTO_ADDRESS
-              description: External account type
-            label:
-              type: string
-              description: Human-readable label for the external account
-              example: Ethereum Wallet
-            cryptoAddress:
-              type: object
-              required:
-                - address
-                - currency
-              properties:
-                address:
-                  type: string
-                  description: Cryptocurrency wallet address
-                  example: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
-                currency:
-                  type: string
-                  description: Currency code for this address
-                  example: USDC_ETH
-              additionalProperties: true
-      description: Request to create an external account (bank account or crypto address)
+    CreateExternalAccountPairResponse:
+      type: object
+      required:
+        - source
+        - destination
+      properties:
+        source:
+          $ref: '#/components/schemas/ExternalAccountResponse'
+        destination:
+          $ref: '#/components/schemas/ExternalAccountResponse'
+      description: Response containing both created external accounts
 
     ExternalAccount:
       type: object
@@ -699,6 +757,45 @@ components:
           example: '2024-01-01T00:00:00.000Z'
       description: Currency entity
 
+    SupportedCurrencyPair:
+      type: object
+      required:
+        - from
+        - to
+        - providers
+      properties:
+        from:
+          type: string
+          description: Source currency code
+          example: USD
+        to:
+          type: string
+          description: Destination currency code
+          example: USDC_GNO
+        providers:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - name
+              - code
+            properties:
+              id:
+                type: string
+                description: Provider identifier
+                example: provider_123
+              name:
+                type: string
+                description: Provider display name
+                example: Noah
+              code:
+                type: string
+                description: Provider code
+                example: NOAH
+          description: Available providers for this currency pair
+      description: A supported currency pair with its available providers
+
     CreateIntentRequest:
       type: object
       required:
@@ -718,12 +815,21 @@ components:
           type: string
           description: Transfer amount as a decimal string (not a number to avoid precision issues)
           example: '100.50'
+        autoExecute:
+          type: boolean
+          default: false
+          description: When true, automatically execute the transaction after compliance completes (skips the manual execute step)
         redirectUrl:
           type: string
           format: uri
           nullable: true
           description: Optional redirect URL after intent completion
           example: https://example.com/callback
+        providerId:
+          type: string
+          maxLength: 255
+          description: Optional provider ID to force a specific provider for this intent
+          example: provider_123
       description: Request to create a payment intent
 
     TransferAmount:
@@ -930,15 +1036,16 @@ components:
           type: string
           format: uri
           nullable: true
-          description: URL to view the intent in the hosted frontend
-          example: https://dashboard.uramp.io/intent/intent_123
+          description: URL for the hosted onboarding/compliance frontend
+          example: https://app.gnosisramp.com/intent/intent_123
         workflowId:
           type: string
           nullable: true
-          description: Temporal workflow identifier
+          description: Workflow identifier
           example: workflow_123
         transaction:
-          $ref: '#/components/schemas/MoneyMovementTransaction'
+          allOf:
+            - $ref: '#/components/schemas/MoneyMovementTransaction'
           nullable: true
           description: Money movement transaction if available
       description: Intent response with full details
@@ -1001,13 +1108,14 @@ components:
           type: string
           format: uri
           nullable: true
-          description: URL to view the intent in the hosted frontend (null if auto-completed)
+          description: URL for the hosted onboarding/compliance frontend (null if auto-completed)
         workflowId:
           type: string
           nullable: true
-          description: Temporal workflow identifier
+          description: Workflow identifier
         transaction:
-          $ref: '#/components/schemas/MoneyMovementTransaction'
+          allOf:
+            - $ref: '#/components/schemas/MoneyMovementTransaction'
           nullable: true
           description: Money movement transaction if auto-completed
       description: Intent creation response
@@ -1031,6 +1139,11 @@ components:
           example: intent_123
         status:
           $ref: '#/components/schemas/MoneyMovementTransactionStatus'
+        providerReference:
+          type: string
+          nullable: true
+          description: Provider-specific transaction reference
+          example: noah_txn_abc123
         lastActivityAt:
           type: string
           format: date-time

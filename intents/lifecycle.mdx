@@ -12,14 +12,18 @@ curl -X POST https://api.gnosisramp.io/v1/intent \
   -H "Authorization: Bearer $GNOSISRAMP_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-        "customerId": "cust_9a8c",
         "srcExternalAccountId": "ext_src",
         "destExternalAccountId": "ext_dest",
         "amount": "100.25",
-        "currencyCode": "USD",
+        "autoExecute": false,
         "redirectUrl": "https://app.yourdomain.com/success"
       }'
 ```
+
+**Optional fields:**
+- `autoExecute` (boolean, default `false`) — when `true`, automatically executes the transaction after compliance completes.
+- `redirectUrl` — URL to redirect users after completing the onboarding flow.
+- `providerId` — force a specific provider (max 255 characters).
 
 The platform will:
 
@@ -34,6 +38,10 @@ The platform will:
     The compliance workflow runs through all required steps. Once the plan reaches `COMPLETED` status, you can proceed with the transaction.
   </Step>
 </Steps>
+
+### Iframe onboarding
+
+For new customers who need to complete compliance steps, the response includes a `frontendUrl`. You can embed this URL in an iframe to keep users within your application. See the [Iframe Integration](/intents/iframe-integration) guide for details on handling postMessage events.
 
 ## 2. Poll or retrieve the intent
 

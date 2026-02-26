@@ -21,10 +21,11 @@ Use your `clientId` as the username and `clientSecret` as the password for HTTP 
 
 ```bash
 # Format: clientId:clientSecret encoded in base64
-curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
+curl -X POST https://api.gnosisramp.io/v1/customers \
   -u "your_client_id:your_client_secret" \
   -H "Content-Type: application/json" \
   -d '{
+        "id": "your-unique-customer-id",
         "subject_token": "your_oidc_token"
       }'
 ```
@@ -36,10 +37,11 @@ Alternatively, you can manually construct the Authorization header:
 echo -n "your_client_id:your_client_secret" | base64
 
 # Use the encoded value in the Authorization header
-curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
+curl -X POST https://api.gnosisramp.io/v1/customers \
   -H "Authorization: Basic <base64_encoded_credentials>" \
   -H "Content-Type: application/json" \
   -d '{
+        "id": "your-unique-customer-id",
         "subject_token": "your_oidc_token"
       }'
 ```

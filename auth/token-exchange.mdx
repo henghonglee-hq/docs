@@ -11,8 +11,8 @@ GnosisRamp never owns your login experience. Instead, it trusts the **subject to
   <Step title="Authenticate with client credentials">
     Encode `clientId:clientSecret` using HTTP Basic auth. These values are bound to a specific project so the resulting customer also inherits that project/organisation context.
   </Step>
-  <Step title="Send the user’s subject token">
-    Call `POST /customers/token-exchange` with the OIDC `subject_token`. GnosisRamp verifies the issuer, signature, allowed audiences, and skew settings you configured earlier.
+  <Step title="Create the customer">
+    Call `POST /customers` with a unique `id` for the customer. Optionally include a `subject_token` (OIDC ID token) if you want to link the customer to an identity provider. GnosisRamp verifies the issuer, signature, allowed audiences, and skew settings you configured earlier.
   </Step>
   <Step title="Store the GnosisRamp JWT per session">
     The response contains (or reuses) a `Customer` row plus an `access_token`. Use this JWT on every customer-scoped endpoint such as external accounts, intents, and transactions.
@@ -20,10 +20,11 @@ GnosisRamp never owns your login experience. Instead, it trusts the **subject to
 </Steps>
 
 ```bash cURL
-curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
+curl -X POST https://api.gnosisramp.io/v1/customers \
   -u "${GNOSISRAMP_CLIENT_ID}:${GNOSISRAMP_CLIENT_SECRET}" \
   -H "Content-Type: application/json" \
   -d '{
+        "id": "your-unique-customer-id",
         "subject_token": "<OIDC_ID_TOKEN>"
       }'
 ```
@@ -41,6 +42,10 @@ curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
 }
 ```
 
+<Note>
+  The `subject_token` field is **optional**. If you don't use OIDC, you can create customers with just an `id` and optional `metadata`.
+</Note>
+
 ### Using the GnosisRamp JWT
 
 - Include it on every authenticated call: `Authorization: Bearer <access_token>`.
@@ -52,6 +57,6 @@ curl -X POST https://api.gnosisramp.io/v1/customers/token-exchange \
 | Status | When it fires | How to resolve |
 | --- | --- | --- |
 | `401 Unauthorized` | Missing/invalid Basic auth or the subject token fails issuer/audience checks. | Verify credentials and ensure the identity provider is registered in GnosisRamp. |
-| `400 Bad Request` | `subject_token` missing or empty. | Supply a JWT string in the request body. |
+| `400 Bad Request` | `id` missing or empty, or token validation failed. | Supply a valid `id` string in the request body. |
 
 Once you have a valid access token you can create external accounts and intents on behalf of your customer without additional user interaction.

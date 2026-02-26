@@ -22,6 +22,7 @@
             "pages": [
               "auth/project-access",
               "auth/token-exchange",
+              "auth/external-auth",
               "auth/gnosispay-wallet"
             ]
           },

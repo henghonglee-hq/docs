@@ -1,21 +1,21 @@
 ---
-title: "Customer Token Exchange"
-description: "Turn your existing OIDC identities into GnosisRamp JWTs."
+title: "Creating a Customer"
+description: "Register customers and obtain GnosisRamp JWTs for authenticated API access."
 ---
 
-GnosisRamp never owns your login experience. Instead, it trusts the **subject token** that your identity provider issues and converts it into a short-lived JWT scoped to a single customer.
+Every customer-scoped operation (external accounts, intents, transactions) requires a GnosisRamp JWT. To get one, create a customer via `POST /customers`.
 
 ## Request flow
 
 <Steps>
   <Step title="Authenticate with client credentials">
-    Encode `clientId:clientSecret` using HTTP Basic auth. These values are bound to a specific project so the resulting customer also inherits that project/organisation context.
+    Encode `clientId:clientSecret` using HTTP Basic auth. These values are bound to a specific project so the resulting customer inherits that project/organisation context.
   </Step>
   <Step title="Create the customer">
-    Call `POST /customers` with a unique `id` for the customer. Optionally include a `subject_token` (OIDC ID token) if you want to link the customer to an identity provider. GnosisRamp verifies the issuer, signature, allowed audiences, and skew settings you configured earlier.
+    Call `POST /customers` with a unique `id` for the customer. You can optionally attach `metadata` to store additional information.
   </Step>
   <Step title="Store the GnosisRamp JWT per session">
-    The response contains (or reuses) a `Customer` row plus an `access_token`. Use this JWT on every customer-scoped endpoint such as external accounts, intents, and transactions.
+    The response contains a `Customer` record plus an `access_token`. Use this JWT on every customer-scoped endpoint.
   </Step>
 </Steps>
 
@@ -24,8 +24,7 @@ curl -X POST https://api.gnosisramp.io/v1/customers \
   -u "${GNOSISRAMP_CLIENT_ID}:${GNOSISRAMP_CLIENT_SECRET}" \
   -H "Content-Type: application/json" \
   -d '{
-        "id": "your-unique-customer-id",
-        "subject_token": "<OIDC_ID_TOKEN>"
+        "id": "your-unique-customer-id"
       }'
 ```
 
@@ -42,21 +41,19 @@ curl -X POST https://api.gnosisramp.io/v1/customers \
 }
 ```
 
-<Note>
-  The `subject_token` field is **optional**. If you don't use OIDC, you can create customers with just an `id` and optional `metadata`.
-</Note>
+If a customer with the same `id` already exists, the endpoint returns the existing customer and a fresh `access_token`.
 
 ### Using the GnosisRamp JWT
 
 - Include it on every authenticated call: `Authorization: Bearer <access_token>`.
-- Tokens inherit the expiration of the subject token plus any TTL you configured. Re-run the exchange when you receive `401 Unauthorized`.
+- Re-run the customer creation call when you receive `401 Unauthorized` to get a fresh token.
 - Generate one token per active session; do not share JWTs between customers.
 
 ### Error handling
 
 | Status | When it fires | How to resolve |
 | --- | --- | --- |
-| `401 Unauthorized` | Missing/invalid Basic auth or the subject token fails issuer/audience checks. | Verify credentials and ensure the identity provider is registered in GnosisRamp. |
-| `400 Bad Request` | `id` missing or empty, or token validation failed. | Supply a valid `id` string in the request body. |
+| `401 Unauthorized` | Missing or invalid Basic auth credentials. | Verify your `clientId` and `clientSecret`. |
+| `400 Bad Request` | `id` missing or empty. | Supply a valid `id` string in the request body. |
 
 Once you have a valid access token you can create external accounts and intents on behalf of your customer without additional user interaction.

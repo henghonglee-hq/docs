@@ -1,0 +1,72 @@
+---
+title: "Creating a Customer with External Auth"
+description: "Link customers to an external identity provider using OIDC token exchange."
+---
+
+If your application uses an external identity provider (Auth0, Firebase, Cognito, etc.), you can link the customer to that provider by including a `subject_token` when creating the customer. GnosisRamp verifies the token and binds the customer to the identity provider's user.
+
+## Request flow
+
+<Steps>
+  <Step title="Authenticate with client credentials">
+    Encode `clientId:clientSecret` using HTTP Basic auth.
+  </Step>
+  <Step title="Send the user's subject token">
+    Call `POST /customers` with a unique `id` and the OIDC `subject_token`. GnosisRamp verifies the issuer, signature, allowed audiences, and skew settings you configured in the dashboard.
+  </Step>
+  <Step title="Store the GnosisRamp JWT per session">
+    The response contains a `Customer` record plus an `access_token`. The JWT inherits the expiration of the subject token plus any TTL you configured.
+  </Step>
+</Steps>
+
+```bash cURL
+curl -X POST https://api.gnosisramp.io/v1/customers \
+  -u "${GNOSISRAMP_CLIENT_ID}:${GNOSISRAMP_CLIENT_SECRET}" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "id": "your-unique-customer-id",
+        "subject_token": "<OIDC_ID_TOKEN>"
+      }'
+```
+
+**Response**
+
+```json
+{
+  "id": "cust_9a8c...",
+  "createdAt": "2025-01-12T21:45:11.201Z",
+  "updatedAt": "2025-01-12T21:45:11.201Z",
+  "organizationId": "org_12f",
+  "projectId": "proj_87c",
+  "access_token": "GNOSISRAMP_JWT_..."
+}
+```
+
+## Configuring Your Identity Provider
+
+Before using token exchange, register your identity provider in the GnosisRamp dashboard:
+
+1. Navigate to your project settings.
+2. Add the provider's **issuer URL** and **allowed audiences**.
+3. GnosisRamp will fetch the provider's JWKS and use it to verify incoming tokens.
+
+## When to Use External Auth
+
+| Scenario | Approach |
+| --- | --- |
+| You have an existing login system (Auth0, Firebase, etc.) | Use `subject_token` to link customers to your IdP |
+| You manage user identity yourself | Use [basic customer creation](/auth/token-exchange) with just `id` |
+| Your users authenticate with Ethereum wallets | Use [GnosisPay Wallet Authentication](/auth/gnosispay-wallet) |
+
+## Error handling
+
+| Status | When it fires | How to resolve |
+| --- | --- | --- |
+| `401 Unauthorized` | Missing/invalid Basic auth or the subject token fails issuer/audience checks. | Verify credentials and ensure the identity provider is registered in GnosisRamp. |
+| `400 Bad Request` | `id` missing or empty, or token validation failed. | Check that the `subject_token` is a valid JWT from a registered provider. |
+
+## Using the GnosisRamp JWT
+
+- Include it on every authenticated call: `Authorization: Bearer <access_token>`.
+- Tokens inherit the expiration of the subject token plus any TTL you configured. Re-run the exchange when you receive `401 Unauthorized`.
+- Generate one token per active session; do not share JWTs between customers.

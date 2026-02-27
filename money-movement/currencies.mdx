@@ -21,23 +21,17 @@ This endpoint uses **Basic Auth** (project credentials), not a customer JWT.
   {
     "from": "USD",
     "to": "USDC_GNO",
-    "providers": [
-      { "id": "provider_123", "name": "Noah", "code": "NOAH" }
-    ]
+    "providerIds": ["provider_123"]
   },
   {
     "from": "EUR",
     "to": "USDC_GNO",
-    "providers": [
-      { "id": "provider_456", "name": "Noah", "code": "NOAH" }
-    ]
+    "providerIds": ["provider_456"]
   },
   {
     "from": "BRL",
     "to": "USDC_BASE",
-    "providers": [
-      { "id": "provider_789", "name": "Belo", "code": "BELO" }
-    ]
+    "providerIds": ["provider_789", "provider_012"]
   }
 ]
 ```
@@ -46,7 +40,9 @@ Each entry represents a supported route with:
 
 - `from` — source currency code
 - `to` — destination currency code
-- `providers` — list of providers that can handle this route
+- `providerIds` — IDs of providers that can handle this route
+
+To get full provider details (name, code, logo), call `GET /providers` with Basic Auth. You can use provider IDs from this response as the `providerId` parameter when [creating intents](/intents/lifecycle) to select a preferred provider.
 
 ## Currency Code Format
 
@@ -72,6 +68,6 @@ const pairs = await fetch('https://api.gnosisramp.io/v1/currencies/supported', {
 const routes = {};
 for (const pair of pairs) {
   if (!routes[pair.from]) routes[pair.from] = [];
-  routes[pair.from].push({ to: pair.to, providers: pair.providers });
+  routes[pair.from].push({ to: pair.to, providerIds: pair.providerIds });
 }
 ```

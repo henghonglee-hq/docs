@@ -16,20 +16,21 @@ curl -X POST https://api.gnosisramp.io/v1/intent \
         "destExternalAccountId": "ext_dest",
         "amount": "100.25",
         "autoExecute": false,
-        "redirectUrl": "https://app.yourdomain.com/success"
+        "redirectUrl": "https://app.yourdomain.com/success",
+        "providerId": "provider_123"
       }'
 ```
 
 **Optional fields:**
 - `autoExecute` (boolean, default `false`) — when `true`, automatically executes the transaction after compliance completes.
 - `redirectUrl` — URL to redirect users after completing the onboarding flow.
-- `providerId` — force a specific provider (max 255 characters).
+- `providerId` — preferred provider ID for this intent. Must be a valid candidate for the payment path. Use `GET /providers` and `GET /currencies/supported` to discover available provider IDs.
 
 The platform will:
 
 <Steps>
-  <Step title="Select the optimal provider">
-    GnosisRamp evaluates all available providers and selects the best match based on the source and destination accounts.
+  <Step title="Select the provider">
+    If you specified a `providerId`, GnosisRamp uses that provider (returning `400` if it can't handle the route). Otherwise, it evaluates all available providers and selects the best match.
   </Step>
   <Step title="Create compliance plan">
     A compliance plan is created with all required steps for the transaction. The response includes a `frontendUrl` where you can direct users to complete any required onboarding.
@@ -63,6 +64,7 @@ The response includes:
 | Scenario | Behaviour |
 | --- | --- |
 | No providers can handle the route | `POST /intent` returns `400` with `"No provider can handle the requested external accounts"`. You may need to enable additional providers for your project. |
+| Invalid preferred provider | `POST /intent` returns `400` with `"Preferred provider '{id}' is not a valid candidate for this payment path"`. The specified `providerId` cannot handle the requested currency route. |
 | Amount precision mismatch | `AmountValidationError` with details about allowed decimals (fiat, stablecoin, native tokens, BTC). Adjust the decimal string before retrying. |
 | Requirements failure | The intent is marked as `FAILED` and the failure reason is available in `compliancePlan.steps[].metadata`. |
 

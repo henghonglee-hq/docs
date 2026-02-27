@@ -20,8 +20,10 @@ Call `GET /external-accounts/requirements` with **both** of these parameters:
 
 ```bash
 curl "https://api.gnosisramp.io/v1/external-accounts/requirements?src=USD&dest=USDC_GNO" \
-  -H "Authorization: Bearer $GNOSISRAMP_TOKEN"
+  -u "${GNOSISRAMP_CLIENT_ID}:${GNOSISRAMP_CLIENT_SECRET}"
 ```
+
+This endpoint uses **Basic Auth** (project credentials), not a customer JWT.
 
 ## Example Response
 

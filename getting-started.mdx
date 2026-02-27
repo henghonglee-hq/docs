@@ -28,9 +28,9 @@ Every integration begins with a **project** that owns credentials, provider acco
 | Production | `https://api.gnosisramp.io/v1` | Full provider roster + live money movement |
 | Sandbox | `https://sandbox.api.gnosisramp.io/v1` | Same schemas with mock providers |
 
-### Discover supported currencies
+### Discover supported currencies and providers
 
-Before building your integration, query `GET /currencies/supported` to discover which currency pairs are available for your project. This tells you which source and destination combinations you can offer to your customers. See the [Supported Currencies](/money-movement/currencies) guide for details.
+Before building your integration, query `GET /currencies/supported` to discover which currency pairs are available for your project. This tells you which source and destination combinations you can offer to your customers. Use `GET /providers` to get details about available providers. See the [Supported Currencies](/money-movement/currencies) guide for details.
 
 Once the project is configured you can focus on customer authentication, external accounts, and intent orchestration — the rest of this guide covers those pieces in depth.
 

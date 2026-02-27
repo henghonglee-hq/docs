@@ -95,6 +95,12 @@
             "pages": [
               "api-reference/endpoints/currencies/get-supported-currency-pairs"
             ]
+          },
+          {
+            "group": "Providers",
+            "pages": [
+              "api-reference/endpoints/providers/get-all-providers"
+            ]
           }
         ]
       }

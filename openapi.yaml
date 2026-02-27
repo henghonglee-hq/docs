@@ -19,6 +19,8 @@ tags:
     description: Payment intent management
   - name: Currencies
     description: Supported currency pairs and providers
+  - name: Providers
+    description: Provider management
 
 paths:
 
@@ -121,6 +123,8 @@ paths:
         the source and destination accounts in a currency pair.
         The schemas include validation rules, field formats, and supported
         currencies/rails for dynamic form generation.
+      security:
+        - basicAuth: []
       parameters:
         - in: query
           name: src
@@ -254,6 +258,41 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/SupportedCurrencyPair'
+        '401':
+          description: Missing or invalid client credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /providers:
+    get:
+      tags:
+        - Providers
+      summary: Get all providers
+      description: |
+        Retrieve the list of all active providers available for the authenticated project.
+
+        Use this endpoint to discover provider IDs, names, and codes. Provider IDs from this
+        endpoint can be used as the `providerId` parameter when creating intents to select
+        a preferred provider.
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
         '401':
           description: Missing or invalid client credentials
           content:
@@ -762,7 +801,7 @@ components:
       required:
         - from
         - to
-        - providers
+        - providerIds
       properties:
         from:
           type: string
@@ -772,29 +811,13 @@ components:
           type: string
           description: Destination currency code
           example: USDC_GNO
-        providers:
+        providerIds:
           type: array
           items:
-            type: object
-            required:
-              - id
-              - name
-              - code
-            properties:
-              id:
-                type: string
-                description: Provider identifier
-                example: provider_123
-              name:
-                type: string
-                description: Provider display name
-                example: Noah
-              code:
-                type: string
-                description: Provider code
-                example: NOAH
-          description: Available providers for this currency pair
-      description: A supported currency pair with its available providers
+            type: string
+          description: IDs of providers that can handle this currency pair. Use `GET /providers` to get full provider details.
+          example: ["provider_123", "provider_456"]
+      description: A supported currency pair with its available provider IDs
 
     CreateIntentRequest:
       type: object
@@ -1032,6 +1055,9 @@ components:
               format: uri
               nullable: true
               description: Redirect URL after intent completion
+            autoExecute:
+              type: boolean
+              description: Whether the transaction will auto-execute after compliance completes
         frontendUrl:
           type: string
           format: uri
@@ -1104,6 +1130,9 @@ components:
               format: uri
               nullable: true
               description: Redirect URL after intent completion
+            autoExecute:
+              type: boolean
+              description: Whether the transaction will auto-execute after compliance completes
         frontendUrl:
           type: string
           format: uri
@@ -1233,3 +1262,29 @@ components:
         - CRYPTO
       description: Currency type
       example: FIAT
+
+    Provider:
+      type: object
+      required:
+        - id
+        - name
+        - code
+      properties:
+        id:
+          type: string
+          description: Unique provider identifier
+          example: provider_123
+        name:
+          type: string
+          description: Provider display name
+          example: Noah
+        code:
+          type: string
+          description: Provider code
+          example: NOAH
+        logo:
+          type: string
+          nullable: true
+          description: URL to the provider's logo
+          example: https://example.com/logo.png
+      description: Payment provider

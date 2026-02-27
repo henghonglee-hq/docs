@@ -1,9 +1,9 @@
 ---
 title: "Transactions & Deposit Instructions"
-description: "Trigger provider transfers and surface the exact steps customers must follow."
+description: "Execute transactions and surface deposit instructions via intent sub-resources."
 ---
 
-After onboarding completes (or auto-complete fires) call the transaction endpoint to create or fetch deposit instructions.
+After onboarding completes (or auto-complete fires), use the intent's transaction sub-resources to execute the transfer and fetch deposit instructions: `POST /intent/{intentId}/transaction` (execute) and `GET /intent/{intentId}/transaction` (status/deposit instructions).
 
 ## Execute the transaction
 

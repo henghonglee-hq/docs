@@ -85,8 +85,21 @@ Persist the returned `source.id` and `destination.id` — you will reference the
 | `400 Bad Request` | Schema validation failed (pattern mismatch, unsupported rail, etc.) | Re-run the requirements call and fix the payload. |
 | `401 Unauthorized` | Missing/expired GnosisRamp JWT | Exchange the subject token again. |
 
+## How External Accounts Drive Provider Selection
+
+When you create an intent, GnosisRamp uses the external account metadata to determine which providers are eligible. Specifically:
+
+| External Account Field | Used For |
+| --- | --- |
+| `currency.code` | Must match a provider's supported source/destination currencies |
+| `type` (BANK_ACCOUNT, CRYPTO_ADDRESS) | Must match the provider's expected account type |
+| `metadata.rail` (ACH, WIRE, PIX, etc.) | Must be in the provider's supported rails |
+| `metadata.countryCode` | Must match the provider's supported countries |
+
+This means the external account details you submit here are not just stored data — they actively filter which providers can handle the payment. If you later pass a `providerId` when creating the intent, it must be one of the providers that passed all these capability checks.
+
 ### Best practices
 
 - Always create accounts as pairs for a specific currency route — GnosisRamp needs both source and destination IDs on the intent.
 - Validate your `source` and `destination` objects against the JSON Schemas from the requirements endpoint before submitting.
-- Query [supported currencies](/money-movement/currencies) first to know which `src`/`dest` combinations are available.
+- Query [supported currencies](/currencies/supported) first to know which `src`/`dest` combinations are available.

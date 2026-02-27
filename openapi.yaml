@@ -347,10 +347,15 @@ paths:
       description: |
         Create a new payment intent between source and destination external accounts.
 
-        The system will automatically find the optimal routing path and create compliance requirements
-        based on the source and destination external accounts. Requires user authentication via bearer token.
+        The system evaluates each active provider's capabilities against the external account metadata
+        (currency, account type, rail, country) to determine which providers can handle the payment.
+        If `providerId` is specified, it must be among the eligible candidates — otherwise a `400` error
+        is returned. If omitted, the first eligible provider is selected.
 
-        **Auto-Complete Feature**: For returning customers who have already completed compliance requirements,
+        The selected provider determines which compliance requirements (KYC/onboarding steps) apply.
+        Different providers may have different compliance flows.
+
+        **Auto-Complete**: For returning customers who have already completed compliance requirements,
         the API will automatically create a transaction and return deposit instructions immediately,
         skipping the onboarding workflow. In this case, `transaction` will be present and `frontendUrl`
         will be null.
@@ -851,7 +856,7 @@ components:
         providerId:
           type: string
           maxLength: 255
-          description: Optional provider ID to force a specific provider for this intent
+          description: Optional preferred provider ID. Must be a valid candidate for the payment path — i.e., the provider must support the currencies, rail, country, and account types of the external accounts. Use `GET /currencies/supported` or `GET /providers` to discover available provider IDs.
           example: provider_123
       description: Request to create a payment intent
 

@@ -3,7 +3,7 @@ title: "Supported Currencies"
 description: "Discover which currency pairs and providers are available for your project."
 ---
 
-Before creating external accounts or intents, query `GET /currencies/supported` to discover which source-to-destination currency routes are available for your project.
+This is the first step in any API integration. Before creating external accounts or intents, query `GET /currencies/supported` to discover which source-to-destination currency routes are available for your project.
 
 ## Request
 
@@ -40,9 +40,12 @@ Each entry represents a supported route with:
 
 - `from` — source currency code
 - `to` — destination currency code
-- `providerIds` — IDs of providers that can handle this route
+- `providerIds` — IDs of providers that can handle this route (at the `Provider.id` level)
 
-To get full provider details (name, code, logo), call `GET /providers` with Basic Auth. You can use provider IDs from this response as the `providerId` parameter when [creating intents](/intents/lifecycle) to select a preferred provider.
+To get full provider details (name, code, logo), call `GET /providers` with Basic Auth. These provider IDs appear in two places later in the flow:
+
+1. **Requirements** — when you call `GET /external-accounts/requirements`, the response may include provider-specific fields via `dependencies` in the JSON Schema.
+2. **Intent creation** — you can pass a `providerId` to `POST /intent` to pin a specific provider. This must be one of the `providerIds` from this response for the relevant currency pair.
 
 ## Currency Code Format
 
@@ -58,6 +61,7 @@ Use the supported currencies list to:
 1. **Build currency selectors** — only show users the currency pairs your project supports.
 2. **Pass `src`/`dest` to requirements** — use the `from`/`to` values when calling `GET /external-accounts/requirements`.
 3. **Validate before account creation** — ensure the currency pair is supported before creating external accounts.
+4. **Show available providers** — use `providerIds` to let users pick a preferred provider, or let GnosisRamp auto-select.
 
 ```ts
 const pairs = await fetch('https://api.gnosisramp.io/v1/currencies/supported', {

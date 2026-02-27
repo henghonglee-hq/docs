@@ -29,16 +29,46 @@ curl -X POST https://api.gnosisramp.io/v1/intent \
 The platform will:
 
 <Steps>
+  <Step title="Filter eligible providers">
+    GnosisRamp evaluates your external accounts against each active provider's capabilities. The metadata from your external accounts — currency, account type, rail, and country — must match the provider's manifest. Only providers that pass all checks become eligible candidates.
+  </Step>
   <Step title="Select the provider">
-    If you specified a `providerId`, GnosisRamp uses that provider (returning `400` if it can't handle the route). Otherwise, it evaluates all available providers and selects the best match.
+    If you specified a `providerId`, GnosisRamp looks for it among the eligible candidates (returning `400` if it's not in the list). Otherwise, the first eligible provider is selected. The `providerId` matches on the `Provider.id` — the same IDs returned by `GET /currencies/supported` and `GET /providers`.
   </Step>
   <Step title="Create compliance plan">
-    A compliance plan is created with all required steps for the transaction. The response includes a `frontendUrl` where you can direct users to complete any required onboarding.
+    The selected provider determines which compliance edges apply, and therefore which KYC/onboarding requirements the user must complete. Different providers may have different compliance flows — for example, one provider might use Sumsub KYC while another has its own onboarding. The response includes a `frontendUrl` where you can direct users to complete any required onboarding.
   </Step>
   <Step title="Execute compliance workflow">
-    The compliance workflow runs through all required steps. Once the plan reaches `COMPLETED` status, you can proceed with the transaction.
+    GnosisRamp checks if all compliance requirements are already fulfilled (e.g., returning users who completed KYC previously). If so, the transaction can execute immediately. Otherwise, a workflow starts from the first unfulfilled requirement. Once the plan reaches `COMPLETED` status, you can proceed with the transaction.
   </Step>
 </Steps>
+
+### How external accounts affect provider routing
+
+The external accounts you created in the previous step carry the data that drives provider selection:
+
+```
+External Account Metadata    →    Provider Capability Check
+─────────────────────────         ────────────────────────
+currency.code ("USD")        →    Can handle source currency?
+currency.code ("USDC_ETH")   →    Can handle dest currency?
+type (BANK_ACCOUNT)          →    Supports this account type?
+metadata.rail ("ACH")        →    Supports this rail?
+metadata.countryCode ("US")  →    Supports this country?
+```
+
+The `providerId` is an **additional filter** on top of capability matching — it says "of all providers that *can* handle my accounts, use *this specific one*." If omitted, GnosisRamp auto-selects.
+
+### Why provider choice affects compliance requirements
+
+Different providers have different compliance configurations. For example:
+
+| Provider | Compliance Flow | User Experience |
+| --- | --- | --- |
+| Provider A (with Sumsub integration) | Sumsub token share → onboarding | User completes Sumsub KYC widget |
+| Provider B (own KYC) | Provider-native KYC → onboarding | User completes provider's own KYC flow |
+
+This is why `providerId` matters beyond just routing — it determines the compliance steps your users will see.
 
 ### Iframe onboarding
 

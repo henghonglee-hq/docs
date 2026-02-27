@@ -29,6 +29,7 @@
           {
             "group": "Customers & External Accounts",
             "pages": [
+              "currencies/supported",
               "external-accounts/requirements",
               "external-accounts/creating"
             ]
@@ -37,17 +38,11 @@
             "group": "Intents & Compliance",
             "pages": [
               "intents/lifecycle",
+              "intents/transactions",
+              "intents/amounts",
               "intents/auto-complete",
               "intents/iframe-integration",
               "intents/polling"
-            ]
-          },
-          {
-            "group": "Money Movement",
-            "pages": [
-              "money-movement/currencies",
-              "money-movement/transactions",
-              "money-movement/amounts"
             ]
           },
           {

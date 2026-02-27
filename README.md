@@ -85,9 +85,9 @@ docs/
 │   ├── overview.mdx       # API reference overview
 │   └── endpoints/         # Auto-generated endpoint docs
 ├── auth/                  # Authentication guides
+├── currencies/            # Currency discovery guides
 ├── external-accounts/     # External accounts guides
-├── intents/              # Intents and compliance guides
-├── money-movement/       # Money movement guides
+├── intents/              # Intents, compliance, and transaction guides
 ├── webhooks/             # Webhook documentation
 └── static/               # Static assets (logos, images)
 ```

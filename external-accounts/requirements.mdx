@@ -3,7 +3,7 @@ title: "Fetching External Account Requirements"
 description: "Use JSON Schema responses to validate source and destination account forms before calling the API."
 ---
 
-GnosisRamp exposes dynamic JSON Schemas so you can render or validate external account forms without reverse-engineering provider requirements.
+After [discovering supported currency pairs](/currencies/supported), the next step is fetching the field requirements for each account type. GnosisRamp exposes dynamic JSON Schemas so you can render or validate external account forms without reverse-engineering provider requirements.
 
 ## Query Parameters
 
@@ -74,6 +74,14 @@ This endpoint uses **Basic Auth** (project credentials), not a customer JWT.
 ```
 
 The `source` schema defines the fields needed for the source account (e.g., bank account details), while `destination` defines the fields for the destination account (e.g., crypto wallet address).
+
+## How Schemas Connect to Provider Selection
+
+The schemas returned here reflect the combined capabilities of all active providers for your project. Key points:
+
+- **Rail choice** — the `rails` field (e.g., `ACH`, `WIRE`, `PIX`) determines which set of account fields are required. Different rails have different schema shapes.
+- **Provider-specific fields** — some providers require additional metadata. The schema's `dependencies` section may include `oneOf` branches per provider with extra fields.
+- **Downstream filtering** — the rail and metadata you submit when [creating external accounts](/external-accounts/creating) are later used by GnosisRamp to filter which providers can handle the payment at intent time. Choosing `ACH` here means only providers supporting ACH will be eligible candidates.
 
 ## Best Practices
 

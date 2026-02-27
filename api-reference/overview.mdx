@@ -12,10 +12,21 @@ The **API reference** tab loads the same OpenAPI document the dashboard uses. Us
 | Content type | `application/json` |
 | Auth schemes | HTTP Basic (project client credentials), Bearer (GnosisRamp JWT) |
 
+### Integration flow
+
+The typical API integration follows this sequence:
+
+1. `GET /currencies/supported` — discover available currency pairs and provider IDs (Basic Auth)
+2. `GET /external-accounts/requirements?src=...&dest=...` — get JSON Schemas for account fields (Basic Auth)
+3. `POST /customers/external-accounts` — create source + destination account pair (Bearer JWT)
+4. `POST /intent` — create a payment intent, optionally with a preferred `providerId` (Bearer JWT)
+
+The external accounts carry currency, rail, country, and account type metadata that filters which providers are eligible at intent time. The `providerId` is an optional preference on top of that filtering.
+
 ### Calling the APIs
 
-1. **Customer creation** and other project-scoped endpoints expect HTTP Basic headers: `Authorization: Basic base64(clientId:clientSecret)`.
-2. Customer-scoped endpoints (`/customers/external-accounts`, `/intent`, `/intent/:id/transaction`, etc.) expect `Authorization: Bearer <GNOSISRAMP_JWT>` obtained from the customer creation flow.
+1. **Project-scoped endpoints** (`/customers`, `/currencies/supported`, `/providers`, `/external-accounts/requirements`) expect HTTP Basic headers: `Authorization: Basic base64(clientId:clientSecret)`.
+2. **Customer-scoped endpoints** (`/customers/external-accounts`, `/intent`, `/intent/:id/transaction`, etc.) expect `Authorization: Bearer <GNOSISRAMP_JWT>` obtained from the customer creation response.
 3. All request bodies should be JSON; numbers such as transfer amounts must be strings (see the Money Movement section for precision rules).
 
 ### Working with the spec

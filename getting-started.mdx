@@ -16,9 +16,6 @@ Every integration begins with a **project** that owns credentials, provider acco
   <Step title="Activate provider accounts">
     To enable payment providers for your project, you'll need to establish accounts directly with each ramp provider you wish to use. Once you have your provider accounts, input the credentials into the GnosisRamp dashboard. All credentials are encrypted and stored securely. After configuration, these providers will participate in routing for your transactions.
   </Step>
-  <Step title="Seed external accounts">
-    Collect destination details from customers (bank rails or crypto addresses). GnosisRamp gives you JSON Schemas per rail — validating requests before you call the APIs prevents surprises during intent creation.
-  </Step>
 </Steps>
 
 ### Environments & URLs
@@ -30,7 +27,24 @@ Every integration begins with a **project** that owns credentials, provider acco
 
 ### Discover supported currencies and providers
 
-Before building your integration, query `GET /currencies/supported` to discover which currency pairs are available for your project. This tells you which source and destination combinations you can offer to your customers. Use `GET /providers` to get details about available providers. See the [Supported Currencies](/money-movement/currencies) guide for details.
+Before building your integration, query `GET /currencies/supported` to discover which currency pairs are available for your project. This tells you which source and destination combinations you can offer to your customers. Use `GET /providers` to get details about available providers. See the [Supported Currencies](/currencies/supported) guide for details.
 
-Once the project is configured you can focus on customer authentication, external accounts, and intent orchestration — the rest of this guide covers those pieces in depth.
+## Integration Flow
+
+Once your project is configured, the API integration follows four steps:
+
+<Steps>
+  <Step title="Discover supported currency pairs">
+    Call `GET /currencies/supported` to find out which source→destination routes are available and which providers can handle each pair. The response includes `providerIds` per pair — the same IDs you can pass as `providerId` when creating intents. See [Supported Currencies](/currencies/supported).
+  </Step>
+  <Step title="Fetch external account requirements">
+    Call `GET /external-accounts/requirements?src=USD&dest=USDC_GNO` to get JSON Schemas defining the fields needed for source and destination accounts. The schemas adapt based on the currency pair — different rails (ACH, WIRE, PIX) and providers may require different fields. See [Fetching Requirements](/external-accounts/requirements).
+  </Step>
+  <Step title="Create external accounts">
+    Submit source and destination account details via `POST /customers/external-accounts`. The accounts are created as a pair and carry the currency, rail, country, and account type information that GnosisRamp uses to filter eligible providers at intent time. See [Creating External Accounts](/external-accounts/creating).
+  </Step>
+  <Step title="Create an intent">
+    Call `POST /intent` with the external account IDs, amount, and an optional `providerId`. GnosisRamp evaluates the external account metadata (currency, rail, country, account type) against each provider's capabilities to find eligible candidates. The `providerId` is an extra filter — "of the providers that *can* handle my accounts, I specifically want *this* one." The selected provider then determines which KYC/compliance requirements the user must complete. See [Intent Lifecycle](/intents/lifecycle).
+  </Step>
+</Steps>
 
